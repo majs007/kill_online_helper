@@ -1,7 +1,6 @@
 package com.online.helper
 
 import android.os.Bundle
-import android.util.JsonToken
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
@@ -17,6 +16,7 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
@@ -34,7 +34,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import com.online.helper.ui.window.ComposeFloatingWindow
+import com.online.helper.ui.window.dragFloatingWindow
 import com.online.helper.ui.components.BasicItemContainer
 import com.online.helper.ui.page.HomeBottomSheet
 import com.online.helper.ui.page.HomeContent
@@ -59,7 +62,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppScaffold() {
     val scope = rememberCoroutineScope()
-    var selectedItem by remember { mutableIntStateOf(1) }
+    var selectedItem by remember { mutableIntStateOf(0) }
     val homeSheetState = rememberModalBottomSheetState()
     val showHomeBottomSheet = remember { mutableStateOf(false) }
     val ruleSheetState = rememberModalBottomSheetState()
@@ -90,9 +93,29 @@ fun AppScaffold() {
             }
         },
         floatingActionButton = {
+            val applicationContext = LocalContext.current.applicationContext
+
+
             when (selectedItem) {
                 0 -> {
-                    FloatingActionButton(onClick = { /*TODO*/ }) {
+                    FloatingActionButton(onClick = {
+
+                        val floatingWindow = ComposeFloatingWindow(applicationContext)
+                        floatingWindow.setContent {
+                     /*       FloatingActionButton(
+                                modifier = Modifier.dragFloatingWindow(),
+                                onClick = {
+                                    Log.i("floatingWindow","launch floating window")
+                                }) {
+                                Icon(Icons.Filled.Call, "Call")
+                            }*/
+                            Button(onClick = { /*TODO*/ }
+                            ,modifier = Modifier.dragFloatingWindow()) {
+                                Text(text = "悬浮按钮")
+                            }
+                        }
+                        floatingWindow.show()
+                    }) {
                         Icon(Icons.Filled.Add, contentDescription = null)
                     }
                 }
@@ -218,5 +241,13 @@ fun PlayerContent() {
         }
 
     }
+}
+
+@Composable
+fun FloatingContent() {
+    Button(onClick = { /*TODO*/ }) {
+        Text(text = "Button")
+    }
+    Text(text = "hello")
 }
 
