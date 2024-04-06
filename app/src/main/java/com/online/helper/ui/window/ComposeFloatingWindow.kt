@@ -3,8 +3,12 @@ package com.online.helper.ui.window
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.graphics.PixelFormat
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -38,7 +42,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.launch
 
 class ComposeFloatingWindow(
-    val context: Context
+    private val context: Context
 ) : SavedStateRegistryOwner, ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
 
     override val defaultViewModelProviderFactory: ViewModelProvider.Factory by lazy {
@@ -52,7 +56,10 @@ class ComposeFloatingWindow(
     override val defaultViewModelCreationExtras: CreationExtras = MutableCreationExtras().apply {
         val application = context.applicationContext?.takeIf { it is Application }
         if (application != null) {
-            set(ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY, application as Application)
+            set(
+                ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY,
+                application as Application
+            )
         }
         set(SAVED_STATE_REGISTRY_OWNER_KEY, this@ComposeFloatingWindow)
         set(VIEW_MODEL_STORE_OWNER_KEY, this@ComposeFloatingWindow)
@@ -87,7 +94,19 @@ class ComposeFloatingWindow(
         }
     }
 
-    fun setContent(content: @Composable () -> Unit) {
+    private var tag: String? = null
+
+
+    fun setTag(tag: String): ComposeFloatingWindow {
+        this.tag = tag
+        return this
+    }
+
+    fun getTag(): String? {
+        return tag
+    }
+
+    fun setContent(content: @Composable () -> Unit): ComposeFloatingWindow {
         setContentView(ComposeView(context).apply {
             setContent {
                 CompositionLocalProvider(
@@ -100,6 +119,7 @@ class ComposeFloatingWindow(
             setViewTreeViewModelStoreOwner(this@ComposeFloatingWindow)
             setViewTreeSavedStateRegistryOwner(this@ComposeFloatingWindow)
         })
+        return this
     }
 
     fun setContentView(view: View) {
@@ -110,27 +130,43 @@ class ComposeFloatingWindow(
         update()
     }
 
+
     fun show() {
-        require(decorView.childCount != 0) {
-            "Content view cannot be empty"
-        }
-        if (showing) {
-            update()
-            return
-        }
-        decorView.getChildAt(0)?.takeIf { it is ComposeView }?.let { composeView ->
-            val reComposer = Recomposer(AndroidUiDispatcher.CurrentThread)
-            composeView.compositionContext = reComposer
-            lifecycleScope.launch(AndroidUiDispatcher.CurrentThread) {
-                reComposer.runRecomposeAndApplyChanges()
+        if (checkOverlayPermission(context)) {
+            //拥有权限
+            require(decorView.childCount != 0) {
+                "Content view cannot be empty"
+            }
+            if (showing) {
+                update()
+                return
+            }
+            decorView.getChildAt(0)?.takeIf { it is ComposeView }?.let { composeView ->
+                val reComposer = Recomposer(AndroidUiDispatcher.CurrentThread)
+                composeView.compositionContext = reComposer
+                lifecycleScope.launch(AndroidUiDispatcher.CurrentThread) {
+                    reComposer.runRecomposeAndApplyChanges()
+                }
+            }
+            if (decorView.parent != null) {
+                windowManager.removeViewImmediate(decorView)
+            }
+            windowManager.addView(decorView, windowParams)
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+            showing = true
+        } else {
+            //没有权限，申请系统悬浮窗权限
+            try {
+                val overlayIntent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${context.packageName}")
+                ).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(overlayIntent)
+            } catch (e: Exception) {
+                // 捕获异常并打印异常信息
+                Log.e("ComposeFloatingWindow.show", "${e.message}\n")
             }
         }
-        if (decorView.parent != null) {
-            windowManager.removeViewImmediate(decorView)
-        }
-        windowManager.addView(decorView, windowParams)
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        showing = true
     }
 
     fun update() {
@@ -151,5 +187,13 @@ class ComposeFloatingWindow(
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         enableSavedStateHandles()
+    }
+
+    private fun checkOverlayPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Settings.canDrawOverlays(context)
+        } else {
+            true
+        }
     }
 }
