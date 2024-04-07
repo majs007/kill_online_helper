@@ -19,18 +19,8 @@ fun generateRandomGradientColors(): List<Color> {
     return listOf(color1, color2)
 }
 
-@Composable
-fun showToastMessage(activity: ComponentActivity, message: String, duration: Int = Toast.LENGTH_SHORT) {
-    val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(activity) {
-        coroutineScope.launch {
-            delay(100) // Delay to make sure the context has been updated
-            Toast.makeText(activity, message, duration).show()
-        }
-    }
-}
-fun showToast(context: ComponentActivity, message: String) {
+fun showToast(context: Context, message: String) {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
 

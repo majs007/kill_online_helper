@@ -8,7 +8,7 @@ object FloatingWindowFactory {
     private lateinit var applicationContext: Context
 
     private val floatingWindowList = mutableMapOf<String, ComposeFloatingWindow>()
-    fun getFloatingWindow(tag: String, content: @Composable () -> Unit): ComposeFloatingWindow {
+    fun getFloatingWindow(tag: String, content: @Composable () -> Unit = {}): ComposeFloatingWindow {
 
         return floatingWindowList[tag] ?: ComposeFloatingWindow(applicationContext)
             .setTag(tag)

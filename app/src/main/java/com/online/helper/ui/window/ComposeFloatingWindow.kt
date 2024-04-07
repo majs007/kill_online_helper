@@ -20,6 +20,7 @@ import androidx.compose.runtime.Recomposer
 import androidx.compose.ui.platform.AndroidUiDispatcher
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.compositionContext
+import androidx.core.view.doOnLayout
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
@@ -74,10 +75,23 @@ class ComposeFloatingWindow(
         SavedStateRegistryController.create(this)
     override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
 
+    //悬浮窗显示状态
     private var showing = false
+
+    //画布
     var decorView: ViewGroup = FrameLayout(context)
+
+    //窗口管理器对象
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+    //内容大小
+    var contentWidth = 0
+    var contentHeight = 0
+
+
+    //窗口布局参数初始化
     val windowParams: WindowManager.LayoutParams = WindowManager.LayoutParams().apply {
+
         height = WindowManager.LayoutParams.WRAP_CONTENT
         width = WindowManager.LayoutParams.WRAP_CONTENT
         format = PixelFormat.TRANSLUCENT
@@ -93,8 +107,11 @@ class ComposeFloatingWindow(
             }
         }
     }
+    var updateLayoutParams: (it: WindowManager.LayoutParams) -> Unit = {}
 
     private var tag: String? = null
+    private var onShow: (() -> Unit) = {}
+    private var onHide: (() -> Unit) = {}
 
 
     fun setTag(tag: String): ComposeFloatingWindow {
@@ -106,23 +123,46 @@ class ComposeFloatingWindow(
         return tag
     }
 
+    //设置悬浮窗组合式UI
     fun setContent(content: @Composable () -> Unit): ComposeFloatingWindow {
-        setContentView(ComposeView(context).apply {
-            setContent {
+        setContentView(ComposeView(context).also {
+            it.setContent {
                 CompositionLocalProvider(
                     LocalFloatingWindow provides this@ComposeFloatingWindow
                 ) {
                     content()
                 }
             }
-            setViewTreeLifecycleOwner(this@ComposeFloatingWindow)
-            setViewTreeViewModelStoreOwner(this@ComposeFloatingWindow)
-            setViewTreeSavedStateRegistryOwner(this@ComposeFloatingWindow)
+            it.setViewTreeLifecycleOwner(this@ComposeFloatingWindow)
+            it.setViewTreeViewModelStoreOwner(this@ComposeFloatingWindow)
+            it.setViewTreeSavedStateRegistryOwner(this@ComposeFloatingWindow)
+            decorView.visibility = View.INVISIBLE
+            it.doOnLayout { view ->
+                this.contentWidth = view.width
+                this.contentHeight = view.height
+                Log.i("doOnLayout", "width:${view.width},height:${view.height}")
+                windowParams.let(updateLayoutParams)
+                decorView.visibility = View.VISIBLE
+                update()
+            }
         })
         return this
     }
 
-    fun setContentView(view: View) {
+    //设置悬浮窗状态回调
+    fun setCallback(onShow: () -> Unit, onHide: () -> Unit): ComposeFloatingWindow {
+        this.onShow = onShow
+        this.onHide = onHide
+        return this
+    }
+
+    //设置窗口布局参数
+    fun setLayoutParams(update: (it: WindowManager.LayoutParams) -> Unit): ComposeFloatingWindow {
+        updateLayoutParams = update
+        return this
+    }
+
+    private fun setContentView(view: View) {
         if (decorView.childCount > 0) {
             decorView.removeAllViews()
         }
@@ -167,6 +207,7 @@ class ComposeFloatingWindow(
                 Log.e("ComposeFloatingWindow.show", "${e.message}\n")
             }
         }
+        onShow()
     }
 
     fun update() {
@@ -181,6 +222,7 @@ class ComposeFloatingWindow(
         showing = false
         windowManager.removeViewImmediate(decorView)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+        onHide()
     }
 
     init {

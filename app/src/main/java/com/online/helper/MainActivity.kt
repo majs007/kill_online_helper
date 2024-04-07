@@ -3,11 +3,13 @@ package com.online.helper
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.Gravity
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,10 +28,12 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,6 +49,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.online.helper.ui.window.ComposeFloatingWindow
@@ -57,6 +62,7 @@ import com.online.helper.ui.page.RuleContent
 import com.online.helper.ui.page.SettingsContent
 import com.online.helper.ui.theme.Kill联机助手Theme
 import com.online.helper.ui.window.FloatingWindowFactory
+import com.online.helper.utils.showToast
 
 
 class MainActivity : ComponentActivity() {
@@ -116,19 +122,44 @@ fun AppScaffold() {
             when (selectedItem) {
                 0 -> {
                     FloatingActionButton(onClick = {
+                        try {
+                            FloatingWindowFactory.getFloatingWindow("tag1") {
+                                Button(
+                                    onClick = {
+                                        FloatingWindowFactory.getFloatingWindow("tag1").hide()
+                                    },
+                                    modifier = Modifier.dragFloatingWindow()
+                                ) {
+                                    Text(text = "隐藏")
+                                }
+                            }.let { fw ->
+                                fw.setCallback(
+                                    onShow = {
+                                        showToast(context, "显示悬浮窗")
+                                        Log.i("onShow", "onShow callback")
+                                    },
+                                    onHide = {
+                                        showToast(context, "隐藏悬浮窗")
+                                        Log.i("onHide", "onHide callback")
 
-                        FloatingWindowFactory.getFloatingWindow("tag1") {
-                            Button(
-                                onClick = { /*TODO*/ },
-                                modifier = Modifier.dragFloatingWindow()
-                            ) {
-                                Text(text = "悬浮按钮")
+                                    }
+                                ).setLayoutParams { params ->
+                                    val decorView = fw.decorView
+                                    val f = Rect().also { decorView.getWindowVisibleDisplayFrame(it) }
+                                    params.x = (f.width() - fw.contentWidth) / 2
+                                    params.y = (f.height() - fw.contentHeight) / 2
+                                }.show()
                             }
-                        }.show()
+
+
+                        } catch (e: Exception) {
+                            Log.e("FloatingActionButton", "${e.message}")
+                        }
 
 
                     }) {
                         Icon(Icons.Filled.Add, contentDescription = null)
+                        ButtonDefaults.MinWidth
                     }
                 }
 
