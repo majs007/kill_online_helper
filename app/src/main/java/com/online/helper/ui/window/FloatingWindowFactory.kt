@@ -7,15 +7,22 @@ import androidx.compose.runtime.CompositionLocalContext
 object FloatingWindowFactory {
     private lateinit var applicationContext: Context
 
+
     private val floatingWindowList = mutableMapOf<String, ComposeFloatingWindow>()
-    fun getFloatingWindow(tag: String, content: @Composable () -> Unit = {}): ComposeFloatingWindow {
+    fun getFloatingWindow(
+        tag: String,
+        content: @Composable ((fw: ComposeFloatingWindow) -> Unit) = @Composable{},
+        config: (composeFloatingWindow: ComposeFloatingWindow) -> Unit = {}
+    ): ComposeFloatingWindow {
 
         return floatingWindowList[tag] ?: ComposeFloatingWindow(applicationContext)
             .setTag(tag)
             .setContent(content).also {
                 floatingWindowList[tag] = it
+                config(it)
             }
     }
+
 
     fun removeFloatingWindow(tag: String): Boolean {
 

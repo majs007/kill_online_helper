@@ -97,8 +97,7 @@ class ComposeFloatingWindow(
         format = PixelFormat.TRANSLUCENT
         gravity = Gravity.START or Gravity.TOP
         windowAnimations = android.R.style.Animation_Dialog
-        flags = (WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-                or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+        flags = (WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL)
         if (context !is Activity) {
             type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -124,13 +123,13 @@ class ComposeFloatingWindow(
     }
 
     //设置悬浮窗组合式UI
-    fun setContent(content: @Composable () -> Unit): ComposeFloatingWindow {
+    fun setContent(content: @Composable (composeFloatingWindow: ComposeFloatingWindow) -> Unit): ComposeFloatingWindow {
         setContentView(ComposeView(context).also {
             it.setContent {
                 CompositionLocalProvider(
                     LocalFloatingWindow provides this@ComposeFloatingWindow
                 ) {
-                    content()
+                    content(this)
                 }
             }
             it.setViewTreeLifecycleOwner(this@ComposeFloatingWindow)
@@ -170,6 +169,9 @@ class ComposeFloatingWindow(
         update()
     }
 
+    fun isShowing(): Boolean {
+        return showing
+    }
 
     fun show() {
         if (checkOverlayPermission(context)) {

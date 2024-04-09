@@ -91,7 +91,6 @@ fun RuleBottomSheet(
                     colors = TextFieldDefaults.colors(unfocusedContainerColor = Color.Transparent),
                     onValueChange = { newText -> roomDescriptionText = newText },
                     placeholder = { Text(text = "素将局，禁点将") },
-
                     )
                 ElevatedButton(
                     onClick = { /*TODO*/ },

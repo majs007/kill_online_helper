@@ -58,6 +58,10 @@ fun HomeBottomSheet(
                 Text(text = "房间描述：素将局", lineHeight = textLineHeight)
                 Text(text = "房间成员：", lineHeight = textLineHeight)
             }
+
+
+
+
             FlowRow(
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.padding(start = appPadding, end = appPadding)
@@ -78,6 +82,10 @@ fun HomeBottomSheet(
                     )
                 }
             }
+
+
+
+
             Spacer(modifier = Modifier.height(quadrupleSpacePadding))
         }
     }
