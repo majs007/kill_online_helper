@@ -1,6 +1,8 @@
 package com.online.helper.ui.window
 
 import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 
@@ -9,9 +11,11 @@ object FloatingWindowFactory {
 
 
     private val floatingWindowList = mutableMapOf<String, ComposeFloatingWindow>()
+    @RequiresApi(Build.VERSION_CODES.P)
     fun getFloatingWindow(
         tag: String,
         content: @Composable ((fw: ComposeFloatingWindow) -> Unit) = @Composable{},
+        onBackHandle:()->Unit={},
         config: (composeFloatingWindow: ComposeFloatingWindow) -> Unit = {}
     ): ComposeFloatingWindow {
 

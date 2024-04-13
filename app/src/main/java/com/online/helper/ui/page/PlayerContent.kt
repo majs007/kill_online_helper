@@ -18,16 +18,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import com.online.helper.ui.components.BasicItemContainer
 import com.online.helper.ui.theme.chipPadding
 import com.online.helper.ui.theme.octupleSpacePadding
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PlayerContent() {
+fun PlayerContent(navController: NavHostController) {
     data class PlayerInfo(val name: String, val lastSeen: Int)
 
-    val players = rememberSaveable {
+    val players = remember {
         listOf(
             PlayerInfo("章鱼哥", 0), PlayerInfo("派大星", 1),
             PlayerInfo("海绵宝宝", 2), PlayerInfo("小蜗", 3),

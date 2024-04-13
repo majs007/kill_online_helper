@@ -10,13 +10,16 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Recomposer
+
 import androidx.compose.ui.platform.AndroidUiDispatcher
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.compositionContext
@@ -43,8 +46,9 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.launch
 
 class ComposeFloatingWindow(
-    private val context: Context
-) : SavedStateRegistryOwner, ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
+    private val context: Context,
+
+    ) : SavedStateRegistryOwner, ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
 
     override val defaultViewModelProviderFactory: ViewModelProvider.Factory by lazy {
         SavedStateViewModelFactory(
@@ -111,6 +115,7 @@ class ComposeFloatingWindow(
     private var tag: String? = null
     private var onShow: (() -> Unit) = {}
     private var onHide: (() -> Unit) = {}
+    private var onBackHandle: () -> Unit = {}
 
 
     fun setTag(tag: String): ComposeFloatingWindow {
@@ -123,7 +128,11 @@ class ComposeFloatingWindow(
     }
 
     //设置悬浮窗组合式UI
-    fun setContent(content: @Composable (composeFloatingWindow: ComposeFloatingWindow) -> Unit): ComposeFloatingWindow {
+    @RequiresApi(Build.VERSION_CODES.P)
+    fun setContent(
+        content: @Composable (composeFloatingWindow: ComposeFloatingWindow) -> Unit,
+
+        ): ComposeFloatingWindow {
         setContentView(ComposeView(context).also {
             it.setContent {
                 CompositionLocalProvider(
@@ -143,6 +152,18 @@ class ComposeFloatingWindow(
                 windowParams.let(updateLayoutParams)
                 decorView.visibility = View.VISIBLE
                 update()
+                it.addOnUnhandledKeyEventListener { v, event ->
+                    if (event.keyCode == KeyEvent.KEYCODE_BACK && event.keyCode == KeyEvent.ACTION_DOWN||
+                        event.action == KeyEvent.KEYCODE_SOFT_LEFT || event.action == KeyEvent.KEYCODE_SOFT_RIGHT) {
+                        // 在这里处理按下返回键的逻辑
+                        onBackHandle()
+                        return@addOnUnhandledKeyEventListener true
+                    } else {
+                        return@addOnUnhandledKeyEventListener false
+                    }
+
+                    // 如果不处理该按键事件，返回 false，以便继续传递给其他监听器处理
+                }
             }
         })
         return this
@@ -152,6 +173,11 @@ class ComposeFloatingWindow(
     fun setCallback(onShow: () -> Unit, onHide: () -> Unit): ComposeFloatingWindow {
         this.onShow = onShow
         this.onHide = onHide
+        return this
+    }
+
+    fun setOnBackHandle(onBackHandle: () -> Unit): ComposeFloatingWindow {
+        this.onBackHandle = onBackHandle
         return this
     }
 

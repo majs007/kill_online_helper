@@ -21,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import com.online.helper.route.Route
 import com.online.helper.ui.theme.appPadding
 import com.online.helper.ui.theme.cardRoundedCorner
 import com.online.helper.ui.theme.floatingButtonPadding
@@ -28,8 +30,10 @@ import com.online.helper.ui.theme.textPadding
 
 @Composable
 fun HomeContent(
-    onRoomItemClicked: () -> Unit
-) {
+    appNavController: NavHostController,
+    scaffoldNavController: NavHostController,
+
+    ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -37,7 +41,7 @@ fun HomeContent(
 //            .background(Color(23,32,43))
     ) {
         ElevatedButton(
-            onClick = {},
+            onClick = {appNavController.navigate(Route.about.value)},
             shape = RoundedCornerShape(cardRoundedCorner),
             modifier = Modifier
                 .fillMaxWidth()
@@ -85,7 +89,7 @@ fun HomeContent(
                 }
                 items(5) {
                     ElevatedButton(
-                        onClick = onRoomItemClicked,
+                        onClick = { scaffoldNavController.navigate(Route.roomInfo.value) },
 
                         shape = RoundedCornerShape(cardRoundedCorner),
                         modifier = Modifier

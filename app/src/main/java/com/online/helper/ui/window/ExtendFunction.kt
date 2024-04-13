@@ -29,3 +29,5 @@ fun Modifier.dragFloatingWindow(): Modifier = composed {
         }
     }
 }
+
+

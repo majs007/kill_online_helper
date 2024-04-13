@@ -10,11 +10,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.navigation.NavHostController
+import com.online.helper.route.Route
 import com.online.helper.ui.components.SwitchItemContainer
 
 @Composable
 fun RuleContent(
-    showRuleBottomSheet: MutableState<Boolean>
+    navController: NavHostController
 ) {
     val roomRule = remember {
         listOf(
@@ -31,13 +33,15 @@ fun RuleContent(
         )
     }
     var radioState by remember { mutableIntStateOf(-1) }
+
+
     LazyColumn {
         itemsIndexed(roomRule) { index, item ->
             SwitchItemContainer(
                 checked = radioState == index,
                 onCheckedChange = {
                     radioState = index
-                    showRuleBottomSheet.value = true
+                    navController.navigate(Route.ruleConfig.value)
                 },
                 icon = Icons.Filled.Delete,
                 onIconClicked = {},
