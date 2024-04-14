@@ -19,11 +19,9 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import com.online.helper.ui.theme.appPadding
 import com.online.helper.ui.theme.chipPadding
 import com.online.helper.ui.theme.quadrupleSpacePadding
@@ -34,62 +32,53 @@ import com.online.helper.viewModel.GlobalVM
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun RoomInfoSheet(
-    navController: NavHostController,
+    isShow: Boolean,
+    onDismissRequest: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState()
 ) {
-
     val globalVM: GlobalVM = viewModel()
-
-    ModalBottomSheet(
-        onDismissRequest = {
-            navController.popBackStack()
-        },
-        sheetState = sheetState,
-    ) {
-        // Sheet content
-        Box(
-            modifier = Modifier.fillMaxWidth()
+    if (isShow) {
+        ModalBottomSheet(
+            onDismissRequest = onDismissRequest,
+            sheetState = sheetState,
+        ) {
+            // Sheet content
+            Box(
+                modifier = Modifier.fillMaxWidth()
 //                    .background(Color.Cyan)
-        ) {
-            Text(text = "房间A", modifier = Modifier.align(Alignment.Center))
-        }
-        Column(modifier = Modifier.padding(start = appPadding, end = appPadding)) {
-
-            Text(text = "房主：章鱼哥", lineHeight = textLineHeight)
-            Text(text = "游戏模式：标准", lineHeight = textLineHeight)
-            Text(text = "房间人数：5-8", lineHeight = textLineHeight)
-            Text(text = "房间描述：素将局", lineHeight = textLineHeight)
-            Text(text = "房间成员：", lineHeight = textLineHeight)
-        }
-
-
-
-
-        FlowRow(
-            verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.padding(start = appPadding, end = appPadding)
-        ) {
-            globalVM.players.forEachIndexed { index, s ->
-                AssistChip(
-                    onClick = { },
-                    label = { Text(s) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Filled.Face,
-                            contentDescription = "Localized description",
-//                                Modifier.size(AssistChipDefaults.IconSize)
-                        )
-                    },
-                    modifier = Modifier
-                        .padding(start = chipPadding, end = chipPadding)
-                )
+            ) {
+                Text(text = "房间A", modifier = Modifier.align(Alignment.Center))
             }
+            Column(modifier = Modifier.padding(start = appPadding, end = appPadding)) {
+                Text(text = "房主：章鱼哥", lineHeight = textLineHeight)
+                Text(text = "游戏模式：标准", lineHeight = textLineHeight)
+                Text(text = "房间人数：5-8", lineHeight = textLineHeight)
+                Text(text = "房间描述：素将局", lineHeight = textLineHeight)
+                Text(text = "房间成员：", lineHeight = textLineHeight)
+            }
+            FlowRow(
+                verticalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.padding(start = appPadding, end = appPadding)
+            ) {
+                globalVM.players.forEachIndexed { index, s ->
+                    AssistChip(
+                        onClick = { },
+                        label = { Text(s) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Face,
+                                contentDescription = "Localized description",
+//                                Modifier.size(AssistChipDefaults.IconSize)
+                            )
+                        },
+                        modifier = Modifier
+                            .padding(start = chipPadding, end = chipPadding)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(quadrupleSpacePadding))
         }
-
-
-
-
-        Spacer(modifier = Modifier.height(quadrupleSpacePadding))
     }
+
 }
 

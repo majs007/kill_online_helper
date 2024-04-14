@@ -1,23 +1,34 @@
 package com.online.helper.ui.page
 
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.online.helper.route.Route
 import com.online.helper.ui.components.SwitchItemContainer
+import com.online.helper.viewModel.GlobalVM
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RuleContent(
-    navController: NavHostController
+    appNavController: NavHostController,
+    scaffoldNavController: NavHostController,
+    ruleListState: LazyListState = rememberLazyListState(),
+    checkedIndex: Int,
+    onCheckedChange: (checkedIndex: Int) -> Unit,
+    globalVM: GlobalVM = viewModel()
 ) {
+
+    var isRuleConfigShow by remember { mutableStateOf(false) }
     val roomRule = remember {
         listOf(
             "标准 | 素将局",
@@ -32,16 +43,15 @@ fun RuleContent(
             "标准 | 素将局",
         )
     }
-    var radioState by remember { mutableIntStateOf(-1) }
-
-
-    LazyColumn {
+    LazyColumn(
+        state = ruleListState,
+    ) {
         itemsIndexed(roomRule) { index, item ->
             SwitchItemContainer(
-                checked = radioState == index,
+                checked = checkedIndex == index,
                 onCheckedChange = {
-                    radioState = index
-                    navController.navigate(Route.ruleConfig.value)
+                    isRuleConfigShow = true
+                    onCheckedChange(index)
                 },
                 icon = Icons.Filled.Delete,
                 onIconClicked = {},
@@ -49,4 +59,7 @@ fun RuleContent(
                 text = { item })
         }
     }
+
+    RuleConfigSheet(isShow = isRuleConfigShow, onDismissRequest = { isRuleConfigShow = false })
+
 }

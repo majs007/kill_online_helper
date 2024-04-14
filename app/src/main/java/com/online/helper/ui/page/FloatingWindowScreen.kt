@@ -2,7 +2,6 @@ package com.online.helper.ui.page
 
 import android.os.Build
 import androidx.activity.OnBackPressedDispatcherOwner
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
@@ -30,10 +29,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,7 +50,6 @@ import com.online.helper.ui.theme.topAppBarActionPadding
 import com.online.helper.ui.window.ComposeFloatingWindow
 import com.online.helper.ui.window.FloatingWindowFactory
 import com.online.helper.ui.window.dragFloatingWindow
-import com.online.helper.utils.showToast
 
 @RequiresApi(Build.VERSION_CODES.P)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,20 +143,22 @@ fun FloatingWindowScreen(
                             },
                             selected = selectedItem == item,
                             onClick = {
-                                selectedItem = item
-                                floatingWindowNavController.popBackStack()
-                                //点击item时，清空栈内 popUpTo ID到栈顶之间的所有节点，避免站内节点持续增加
-                                floatingWindowNavController.navigate(item) {
-                                    popUpTo(floatingWindowNavController.graph.findStartDestination().id) {
-                                        //跳转时保存页面状态
-                                        saveState = true
+                                if (selectedItem != item) {
+                                    selectedItem = item
+                                    floatingWindowNavController.popBackStack()
+                                    //点击item时，清空栈内 popUpTo ID到栈顶之间的所有节点，避免站内节点持续增加
+                                    floatingWindowNavController.navigate(item) {
+                                        popUpTo(floatingWindowNavController.graph.findStartDestination().id) {
+                                            //跳转时保存页面状态
+                                            saveState = true
+                                        }
+                                        //栈顶复用，避免重复点击同一个导航按钮，回退栈中多次创建实例
+                                        launchSingleTop = true
+                                        //回退时恢复页面状态
+                                        restoreState = true
+                                        //通过使用 saveState 和 restoreState 标志，当在底部导航项之间切换时，
+                                        //系统会正确保存并恢复该项的状态和返回堆栈。
                                     }
-                                    //栈顶复用，避免重复点击同一个导航按钮，回退栈中多次创建实例
-                                    launchSingleTop = true
-                                    //回退时恢复页面状态
-                                    restoreState = true
-                                    //通过使用 saveState 和 restoreState 标志，当在底部导航项之间切换时，
-                                    //系统会正确保存并恢复该项的状态和返回堆栈。
                                 }
                             }
                         )
@@ -168,7 +166,7 @@ fun FloatingWindowScreen(
                 }
             },
             modifier = Modifier.size(floatingWindowWidth, floatingWindowHeight)
-        ) { it ->
+        ) {
             val topAppBarPadding = it.calculateTopPadding()
             val bottomAppBarPadding = it.calculateBottomPadding()
             Column(

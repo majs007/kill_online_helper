@@ -19,7 +19,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Recomposer
-
 import androidx.compose.ui.platform.AndroidUiDispatcher
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.compositionContext
@@ -118,6 +117,13 @@ class ComposeFloatingWindow(
     private var onBackHandle: () -> Unit = {}
 
 
+    init {
+        savedStateRegistryController.performRestore(null)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        enableSavedStateHandles()
+    }
+
+
     fun setTag(tag: String): ComposeFloatingWindow {
         this.tag = tag
         return this
@@ -152,17 +158,17 @@ class ComposeFloatingWindow(
                 windowParams.let(updateLayoutParams)
                 decorView.visibility = View.VISIBLE
                 update()
-                it.addOnUnhandledKeyEventListener { v, event ->
-                    if (event.keyCode == KeyEvent.KEYCODE_BACK && event.keyCode == KeyEvent.ACTION_DOWN||
-                        event.action == KeyEvent.KEYCODE_SOFT_LEFT || event.action == KeyEvent.KEYCODE_SOFT_RIGHT) {
+                it.addOnUnhandledKeyEventListener { _, event ->
+                    if (event.keyCode == KeyEvent.KEYCODE_BACK && event.keyCode == KeyEvent.ACTION_DOWN ||
+                        event.action == KeyEvent.KEYCODE_SOFT_LEFT || event.action == KeyEvent.KEYCODE_SOFT_RIGHT
+                    ) {
                         // 在这里处理按下返回键的逻辑
                         onBackHandle()
                         return@addOnUnhandledKeyEventListener true
                     } else {
+                        // 如果不处理该按键事件，返回 false，以便继续传递给其他监听器处理
                         return@addOnUnhandledKeyEventListener false
                     }
-
-                    // 如果不处理该按键事件，返回 false，以便继续传递给其他监听器处理
                 }
             }
         })
@@ -253,11 +259,6 @@ class ComposeFloatingWindow(
         onHide()
     }
 
-    init {
-        savedStateRegistryController.performRestore(null)
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-        enableSavedStateHandles()
-    }
 
     private fun checkOverlayPermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

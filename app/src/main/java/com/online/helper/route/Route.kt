@@ -7,8 +7,14 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,19 +25,14 @@ import com.online.helper.ui.page.FloatingWindowMessageContent
 import com.online.helper.ui.page.FloatingWindowSettingContent
 import com.online.helper.ui.page.HomeContent
 import com.online.helper.ui.page.PlayerContent
-import com.online.helper.ui.page.RoomInfoSheet
-import com.online.helper.ui.page.RuleConfigSheet
 import com.online.helper.ui.page.RuleContent
 import com.online.helper.ui.page.SettingsContent
-import com.online.helper.ui.window.ComposeFloatingWindow
 
 sealed class Route(val value: String) {
     data object app : Route("app")
     data object home : Route("home")
-    data object roomInfo : Route("home/roomInfo")
     data object player : Route("player")
     data object rule : Route("rule")
-    data object ruleConfig : Route("rule/ruleConfig")
     data object setting : Route("setting")
     data object about : Route("setting/about")
     data object messageFW : Route("messageFW")
@@ -48,10 +49,11 @@ val floatingWindowTopBarTitle = listOf("房间聊天", "房间成员", "设置")
 
 
 @RequiresApi(Build.VERSION_CODES.P)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Navigation(appNavController: NavHostController) {
-
+    val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) {
+        "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"
+    }
     NavHost(
         navController = appNavController,
         startDestination = Route.app.value,
@@ -69,25 +71,35 @@ fun Navigation(appNavController: NavHostController) {
         },
     ) {
         composable(Route.app.value) {
-            AppScreen(appNavController)
-        }
-        composable(Route.roomInfo.value) {
-            RoomInfoSheet(appNavController)
-        }
-        composable(Route.ruleConfig.value) {
-            RuleConfigSheet(appNavController)
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                AppScreen(appNavController)
+            }
         }
         composable(Route.about.value) {
-            AboutScreen(appNavController)
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                AboutScreen(appNavController)
+            }
         }
     }
 }
+
 
 @Composable
 fun ScaffoldNavigation(
     appNavController: NavHostController, scaffoldNavController: NavHostController
 ) {
-
+    val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) {
+        "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"
+    }
+    val roomListState = rememberLazyListState()
+    val playerListState = rememberLazyListState()
+    val ruleListState = rememberLazyListState()
+    val settingListState = rememberLazyListState()
+    var checkedIndex by remember { mutableIntStateOf(-1) }
     NavHost(
         navController = scaffoldNavController,
         startDestination = Route.home.value,
@@ -104,17 +116,37 @@ fun ScaffoldNavigation(
             )
         }
     ) {
+
         composable(Route.home.value) {
-            HomeContent(appNavController, scaffoldNavController)
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                HomeContent(appNavController, scaffoldNavController, roomListState)
+            }
         }
         composable(Route.player.value) {
-            PlayerContent(scaffoldNavController)
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                PlayerContent(scaffoldNavController, playerListState)
+            }
         }
         composable(Route.rule.value) {
-            RuleContent(scaffoldNavController)
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                RuleContent(appNavController, scaffoldNavController, ruleListState, checkedIndex,
+                    onCheckedChange = {
+                        checkedIndex = it
+                    })
+            }
         }
         composable(Route.setting.value) {
-            SettingsContent(appNavController, scaffoldNavController)
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                SettingsContent(appNavController, scaffoldNavController, settingListState)
+            }
         }
     }
 }
@@ -124,6 +156,9 @@ fun ScaffoldNavigation(
 fun FWdNavigation(
     floatingWindowNavController: NavHostController
 ) {
+    val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) {
+        "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"
+    }
     NavHost(
         navController = floatingWindowNavController,
         startDestination = Route.messageFW.value,
@@ -141,13 +176,25 @@ fun FWdNavigation(
         }
     ) {
         composable(Route.messageFW.value) {
-            FloatingWindowMessageContent()
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                FloatingWindowMessageContent()
+            }
         }
         composable(Route.memberFW.value) {
-            FloatingWindowMemberContent()
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                FloatingWindowMemberContent()
+            }
         }
         composable(Route.settingFW.value) {
-            FloatingWindowSettingContent()
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                FloatingWindowSettingContent()
+            }
         }
     }
 }
