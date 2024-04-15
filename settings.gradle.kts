@@ -10,10 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://jitpack.io")
     }
 }
 
+include(":app", ":core", ":zerotierfix")
 rootProject.name = "kill联机助手"
-include(":app")
- 
