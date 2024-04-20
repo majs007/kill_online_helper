@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.util;
+package kill.online.helper.zeroTier.util;
 
 import android.content.Context;
 
@@ -6,8 +6,6 @@ import java.io.File;
 
 /**
  * 文件工具类
- *
- * @author kaaass
  */
 public class FileUtil {
 

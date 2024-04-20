@@ -26,7 +26,7 @@ import kill.online.helper.ui.theme.appPadding
 import kill.online.helper.ui.theme.chipPadding
 import kill.online.helper.ui.theme.quadrupleSpacePadding
 import kill.online.helper.ui.theme.textLineHeight
-import kill.online.helper.viewModel.GlobalVM
+import kill.online.helper.viewModel.AppViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -36,7 +36,7 @@ fun RoomInfoSheet(
     onDismissRequest: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState()
 ) {
-    val globalVM: GlobalVM = viewModel()
+    val appViewModel: AppViewModel = viewModel()
     if (isShow) {
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
@@ -60,7 +60,7 @@ fun RoomInfoSheet(
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.padding(start = appPadding, end = appPadding)
             ) {
-                globalVM.players.forEachIndexed { index, s ->
+                appViewModel.players.forEachIndexed { index, s ->
                     AssistChip(
                         onClick = { },
                         label = { Text(s) },

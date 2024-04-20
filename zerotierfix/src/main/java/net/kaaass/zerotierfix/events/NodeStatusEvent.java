@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.events;
+package kill.online.helper.zeroTier.events;
 
 import com.zerotier.sdk.NodeStatus;
 import com.zerotier.sdk.Version;
@@ -8,7 +8,7 @@ import lombok.Data;
 
 /**
  * 节点状态事件
- *
+ * <p>
  * 在遇到 {@link NodeStatusRequestEvent} 或 Zerotier 事件时触发
  */
 @Data

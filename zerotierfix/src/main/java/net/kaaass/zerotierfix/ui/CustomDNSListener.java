@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 /**
  * 自定义 DNS 设置监听器，当值变更时调用

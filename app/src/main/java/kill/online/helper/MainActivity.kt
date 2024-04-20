@@ -9,7 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.navigation.compose.rememberNavController
 import kill.online.helper.route.Navigation
-import kill.online.helper.ui.theme.Kill联机助手Theme
+import kill.online.helper.ui.theme.killTheme
 import kill.online.helper.ui.window.FloatingWindowFactory
 
 
@@ -19,8 +19,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // 初始化悬浮窗
         FloatingWindowFactory.setApplicationContext(applicationContext)
+
         setContent {
-            Kill联机助手Theme {
+            killTheme {
                 val externalNavController = rememberNavController()
                 Navigation(externalNavController)
             }

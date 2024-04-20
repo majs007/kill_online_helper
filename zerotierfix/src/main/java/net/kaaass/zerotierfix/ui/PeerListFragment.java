@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 import android.app.Activity;
 import android.content.Context;
@@ -20,10 +20,10 @@ import com.zerotier.sdk.Peer;
 import com.zerotier.sdk.PeerPhysicalPath;
 import com.zerotier.sdk.PeerRole;
 
-import net.kaaass.zerotierfix.R;
-import net.kaaass.zerotierfix.events.PeerInfoReplyEvent;
-import net.kaaass.zerotierfix.events.PeerInfoRequestEvent;
-import net.kaaass.zerotierfix.util.StringUtils;
+import kill.online.helper.zeroTier.R;
+import kill.online.helper.zeroTier.events.PeerInfoReplyEvent;
+import kill.online.helper.zeroTier.events.PeerInfoRequestEvent;
+import kill.online.helper.zeroTier.util.StringUtils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -37,8 +37,6 @@ import lombok.ToString;
 
 /**
  * Peer 信息展示 fragment
- *
- * @author kaaass
  */
 public class PeerListFragment extends Fragment {
 

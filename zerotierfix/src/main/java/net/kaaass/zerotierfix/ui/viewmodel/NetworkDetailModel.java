@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui.viewmodel;
+package kill.online.helper.zeroTier.ui.viewmodel;
 
 import android.app.Application;
 import android.util.Log;
@@ -10,15 +10,15 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.zerotier.sdk.VirtualNetworkConfig;
 
-import net.kaaass.zerotierfix.ZerotierFixApplication;
-import net.kaaass.zerotierfix.events.DefaultRouteChangedEvent;
-import net.kaaass.zerotierfix.events.NetworkConfigChangedByUserEvent;
-import net.kaaass.zerotierfix.events.VirtualNetworkConfigChangedEvent;
-import net.kaaass.zerotierfix.events.VirtualNetworkConfigReplyEvent;
-import net.kaaass.zerotierfix.events.VirtualNetworkConfigRequestEvent;
-import net.kaaass.zerotierfix.model.Network;
-import net.kaaass.zerotierfix.model.NetworkConfig;
-import net.kaaass.zerotierfix.model.NetworkDao;
+import kill.online.helper.zeroTier.ZerotierFix;
+import kill.online.helper.zeroTier.events.DefaultRouteChangedEvent;
+import kill.online.helper.zeroTier.events.NetworkConfigChangedByUserEvent;
+import kill.online.helper.zeroTier.events.VirtualNetworkConfigChangedEvent;
+import kill.online.helper.zeroTier.events.VirtualNetworkConfigReplyEvent;
+import kill.online.helper.zeroTier.events.VirtualNetworkConfigRequestEvent;
+import kill.online.helper.zeroTier.model.Network;
+import kill.online.helper.zeroTier.model.NetworkConfig;
+import kill.online.helper.zeroTier.model.NetworkDao;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -62,7 +62,7 @@ public class NetworkDetailModel extends AndroidViewModel {
      */
     private void doRetrieveNetworkAndConfig() {
         // 在 DB 中查询网络对象
-        var networkDao = ((ZerotierFixApplication) getApplication())
+        var networkDao = ZerotierFix
                 .getDaoSession().getNetworkDao();
         var queryResult = networkDao.queryBuilder()
                 .where(NetworkDao.Properties.NetworkId.eq(this.networkId))

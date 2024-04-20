@@ -1,8 +1,8 @@
-package net.kaaass.zerotierfix.model.type;
+package kill.online.helper.zeroTier.model.type;
 
 import com.zerotier.sdk.VirtualNetworkType;
 
-import net.kaaass.zerotierfix.R;
+import kill.online.helper.zeroTier.R;
 
 public enum NetworkType {
     UNKNOWN(0),

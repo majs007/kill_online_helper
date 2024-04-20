@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.model;
+package kill.online.helper.zeroTier.model;
 
 import androidx.annotation.Nullable;
 
@@ -32,16 +32,20 @@ public class Network {
 
     @ToOne(joinProperty = "networkConfigId")
     private NetworkConfig networkConfig;
-    /** Used to resolve relations */
+    /**
+     * Used to resolve relations
+     */
     @Generated(hash = 2040040024)
     private transient DaoSession daoSession;
-    /** Used for active entity operations. */
+    /**
+     * Used for active entity operations.
+     */
     @Generated(hash = 1869807503)
     private transient NetworkDao myDao;
 
     @Generated(hash = 1813013561)
     public Network(Long networkId, String networkIdStr, String networkName, boolean useDefaultRoute,
-            boolean lastActivated, long networkConfigId) {
+                   boolean lastActivated, long networkConfigId) {
         this.networkId = networkId;
         this.networkIdStr = networkIdStr;
         this.networkName = networkName;
@@ -117,7 +121,9 @@ public class Network {
     @Generated(hash = 1230649737)
     private transient Long networkConfig__resolvedKey;
 
-    /** To-one relationship, resolved on first access. */
+    /**
+     * To-one relationship, resolved on first access.
+     */
     @Generated(hash = 507065422)
     public NetworkConfig getNetworkConfig() {
         long __key = this.networkConfigId;
@@ -137,7 +143,9 @@ public class Network {
         return networkConfig;
     }
 
-    /** called by internal mechanisms, do not call yourself. */
+    /**
+     * called by internal mechanisms, do not call yourself.
+     */
     @Generated(hash = 26187198)
     public void setNetworkConfig(@NotNull NetworkConfig networkConfig) {
         if (networkConfig == null) {
@@ -187,7 +195,9 @@ public class Network {
         myDao.update(this);
     }
 
-    /** called by internal mechanisms, do not call yourself. */
+    /**
+     * called by internal mechanisms, do not call yourself.
+     */
     @Generated(hash = 75076313)
     public void __setDaoSession(DaoSession daoSession) {
         this.daoSession = daoSession;

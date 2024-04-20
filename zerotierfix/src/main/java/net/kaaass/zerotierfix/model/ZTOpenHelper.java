@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.model;
+package kill.online.helper.zeroTier.model;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;

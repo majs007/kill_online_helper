@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 import android.app.AlertDialog;
 import android.content.ClipData;
@@ -27,15 +27,15 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
-import net.kaaass.zerotierfix.R;
-import net.kaaass.zerotierfix.ZerotierFixApplication;
-import net.kaaass.zerotierfix.events.AddMoonOrbitEvent;
-import net.kaaass.zerotierfix.events.OrbitMoonEvent;
-import net.kaaass.zerotierfix.events.RemoveMoonOrbitEvent;
-import net.kaaass.zerotierfix.model.DaoSession;
-import net.kaaass.zerotierfix.model.MoonOrbit;
-import net.kaaass.zerotierfix.model.MoonOrbitDao;
-import net.kaaass.zerotierfix.util.FileUtil;
+import kill.online.helper.zeroTier.R;
+import kill.online.helper.zeroTier.ZerotierFix;
+import kill.online.helper.zeroTier.events.AddMoonOrbitEvent;
+import kill.online.helper.zeroTier.events.OrbitMoonEvent;
+import kill.online.helper.zeroTier.events.RemoveMoonOrbitEvent;
+import kill.online.helper.zeroTier.model.DaoSession;
+import kill.online.helper.zeroTier.model.MoonOrbit;
+import kill.online.helper.zeroTier.model.MoonOrbitDao;
+import kill.online.helper.zeroTier.util.FileUtil;
 
 import org.apache.commons.io.FileUtils;
 import org.greenrobot.eventbus.EventBus;
@@ -53,8 +53,6 @@ import lombok.ToString;
 
 /**
  * 入轨配置片段
- *
- * @author kaaass
  */
 public class MoonOrbitFragment extends Fragment {
 
@@ -185,7 +183,7 @@ public class MoonOrbitFragment extends Fragment {
      * 获得 Moon 入轨配置列表
      */
     private List<MoonOrbit> getMoonOrbitList() {
-        DaoSession daoSession = ((ZerotierFixApplication) requireActivity().getApplication()).getDaoSession();
+        DaoSession daoSession = ZerotierFix.getDaoSession();
         return daoSession.getMoonOrbitDao().loadAll();
     }
 
@@ -306,7 +304,7 @@ public class MoonOrbitFragment extends Fragment {
         boolean fromFile = event.isFromFile();
         Log.i(TAG, "add orbit info " + Long.toHexString(moonWorldId));
         // 数据库修改
-        DaoSession daoSession = ((ZerotierFixApplication) requireActivity().getApplication()).getDaoSession();
+        DaoSession daoSession = ZerotierFix.getDaoSession();
         long existCount = daoSession.getMoonOrbitDao().queryBuilder()
                 .where(MoonOrbitDao.Properties.MoonWorldId.eq(moonWorldId))
                 .buildCount()
@@ -352,7 +350,7 @@ public class MoonOrbitFragment extends Fragment {
         long moonSeed = event.getMoonSeed();
         Log.i(TAG, "remove orbit info " + Long.toHexString(moonWorldId));
         // 查询待删除项目
-        DaoSession daoSession = ((ZerotierFixApplication) requireActivity().getApplication()).getDaoSession();
+        DaoSession daoSession = ZerotierFix.getDaoSession();
         MoonOrbit moonOrbit = daoSession.getMoonOrbitDao().queryBuilder()
                 .where(MoonOrbitDao.Properties.MoonWorldId.eq(moonWorldId),
                         MoonOrbitDao.Properties.MoonSeed.eq(moonSeed))

@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix;
+package kill.online.helper.zeroTier;
 
 import static org.junit.Assert.assertEquals;
 

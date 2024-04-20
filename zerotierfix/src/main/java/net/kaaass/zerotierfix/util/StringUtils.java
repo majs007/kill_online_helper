@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.util;
+package kill.online.helper.zeroTier.util;
 
 import androidx.annotation.NonNull;
 
@@ -12,8 +12,6 @@ import java.util.Locale;
 
 /**
  * 字符串处理工具类
- *
- * @author kaaass
  */
 public class StringUtils {
 

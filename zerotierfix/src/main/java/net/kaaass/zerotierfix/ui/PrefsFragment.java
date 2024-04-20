@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -25,10 +25,10 @@ import androidx.preference.SwitchPreference;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
-import net.kaaass.zerotierfix.R;
-import net.kaaass.zerotierfix.service.ZeroTierOneService;
-import net.kaaass.zerotierfix.util.Constants;
-import net.kaaass.zerotierfix.util.FileUtil;
+import kill.online.helper.zeroTier.R;
+import kill.online.helper.zeroTier.service.ZeroTierOneService;
+import kill.online.helper.zeroTier.util.Constants;
+import kill.online.helper.zeroTier.util.FileUtil;
 
 import org.apache.commons.io.FileUtils;
 

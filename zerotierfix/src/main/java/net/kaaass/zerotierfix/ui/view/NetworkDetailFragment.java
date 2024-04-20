@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui.view;
+package kill.online.helper.zeroTier.ui.view;
 
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -18,15 +18,15 @@ import androidx.lifecycle.ViewModelProvider;
 import com.zerotier.sdk.VirtualNetworkConfig;
 import com.zerotier.sdk.util.StringUtils;
 
-import net.kaaass.zerotierfix.R;
-import net.kaaass.zerotierfix.model.Network;
-import net.kaaass.zerotierfix.model.NetworkConfig;
-import net.kaaass.zerotierfix.model.type.DNSMode;
-import net.kaaass.zerotierfix.model.type.NetworkStatus;
-import net.kaaass.zerotierfix.model.type.NetworkType;
-import net.kaaass.zerotierfix.ui.NetworkListFragment;
-import net.kaaass.zerotierfix.ui.viewmodel.NetworkDetailModel;
-import net.kaaass.zerotierfix.util.Constants;
+import kill.online.helper.zeroTier.R;
+import kill.online.helper.zeroTier.model.Network;
+import kill.online.helper.zeroTier.model.NetworkConfig;
+import kill.online.helper.zeroTier.model.type.DNSMode;
+import kill.online.helper.zeroTier.model.type.NetworkStatus;
+import kill.online.helper.zeroTier.model.type.NetworkType;
+import kill.online.helper.zeroTier.ui.NetworkListFragment;
+import kill.online.helper.zeroTier.ui.viewmodel.NetworkDetailModel;
+import kill.online.helper.zeroTier.util.Constants;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -34,8 +34,6 @@ import java.net.InetSocketAddress;
 
 /**
  * 展示网络详细信息的 fragment
- *
- * @author kaaass
  */
 public class NetworkDetailFragment extends Fragment {
     private static final String TAG = "NetworkDetailView";

@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.model;
+package kill.online.helper.zeroTier.model;
 
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Id;

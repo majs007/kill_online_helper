@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui.view;
+package kill.online.helper.zeroTier.ui.view;
 
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -6,7 +6,7 @@ import android.view.MenuItem;
 import androidx.appcompat.app.ActionBar;
 import androidx.fragment.app.Fragment;
 
-import net.kaaass.zerotierfix.ui.SingleFragmentActivity;
+import kill.online.helper.zeroTier.ui.SingleFragmentActivity;
 
 /**
  * 网络信息 fragment 的容器 activity

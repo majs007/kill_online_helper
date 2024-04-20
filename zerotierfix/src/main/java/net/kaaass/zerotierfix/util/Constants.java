@@ -1,9 +1,7 @@
-package net.kaaass.zerotierfix.util;
+package kill.online.helper.zeroTier.util;
 
 /**
  * 维护程序中公共的常量
- *
- * @author kaaass
  */
 public class Constants {
 

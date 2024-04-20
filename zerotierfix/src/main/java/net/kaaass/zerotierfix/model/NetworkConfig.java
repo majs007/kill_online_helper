@@ -1,7 +1,7 @@
-package net.kaaass.zerotierfix.model;
+package kill.online.helper.zeroTier.model;
 
-import net.kaaass.zerotierfix.model.type.NetworkStatus;
-import net.kaaass.zerotierfix.model.type.NetworkType;
+import kill.online.helper.zeroTier.model.type.NetworkStatus;
+import kill.online.helper.zeroTier.model.type.NetworkType;
 
 import org.greenrobot.greendao.DaoException;
 import org.greenrobot.greendao.annotation.Convert;
@@ -66,7 +66,7 @@ public class NetworkConfig {
 
     @Generated(hash = 1535887363)
     public NetworkConfig(Long id, NetworkType type, NetworkStatus status, String mac, String mtu,
-            boolean broadcast, boolean bridging, boolean routeViaZeroTier, boolean useCustomDNS, int dnsMode) {
+                         boolean broadcast, boolean bridging, boolean routeViaZeroTier, boolean useCustomDNS, int dnsMode) {
         this.id = id;
         this.type = type;
         this.status = status;
@@ -205,7 +205,9 @@ public class NetworkConfig {
         return assignedAddresses;
     }
 
-    /** Resets a to-many relationship, making the next get call to query for a fresh result. */
+    /**
+     * Resets a to-many relationship, making the next get call to query for a fresh result.
+     */
     @Generated(hash = 1705851723)
     public synchronized void resetAssignedAddresses() {
         assignedAddresses = null;
@@ -277,7 +279,9 @@ public class NetworkConfig {
         myDao.update(this);
     }
 
-    /** called by internal mechanisms, do not call yourself. */
+    /**
+     * called by internal mechanisms, do not call yourself.
+     */
     @Generated(hash = 1093510048)
     public void __setDaoSession(DaoSession daoSession) {
         this.daoSession = daoSession;

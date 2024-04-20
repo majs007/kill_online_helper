@@ -1,8 +1,8 @@
-package net.kaaass.zerotierfix.service;
+package kill.online.helper.zeroTier.service;
 
 import android.util.Log;
 
-import net.kaaass.zerotierfix.util.IPPacketUtils;
+import kill.online.helper.zeroTier.util.IPPacketUtils;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;

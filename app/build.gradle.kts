@@ -1,11 +1,20 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.greenrobot.greendao")
+}
+greendao {
+    schemaVersion = 22
+    daoPackage("kill.online.helper.zeroTier.model")
 }
 
 android {
     namespace = "kill.online.helper"
     compileSdk = 34
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "kill.online.helper"
@@ -33,11 +42,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_16
+        targetCompatibility = JavaVersion.VERSION_16
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "16"
     }
     buildFeatures {
         compose = true
@@ -53,7 +62,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":zerotierfix"))
+    implementation(project(":core"))
 
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
@@ -67,6 +76,14 @@ dependencies {
     implementation("androidx.compose.foundation:foundation-android")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.navigation:navigation-runtime-ktx:2.7.7")
+    implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("org.greenrobot:greendao:3.3.0")
+    implementation("org.greenrobot:eventbus:3.2.0")
+    implementation("commons-io:commons-io:2.13.0")
+    implementation("commons-validator:commons-validator:1.7")
+    implementation("org.projectlombok:lombok:1.18.28")
+
+    implementation("com.google.code.gson:gson:2.10.1")
 
     testImplementation("junit:junit:4.13.2")
 
@@ -77,4 +94,6 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+
 }

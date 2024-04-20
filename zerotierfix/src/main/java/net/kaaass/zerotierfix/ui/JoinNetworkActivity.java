@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 import android.os.Bundle;
 import android.view.MenuItem;

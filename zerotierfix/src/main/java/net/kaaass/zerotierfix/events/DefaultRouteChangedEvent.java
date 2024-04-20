@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.events;
+package kill.online.helper.zeroTier.events;
 
 public class DefaultRouteChangedEvent {
     private final boolean isDefaultRoute;

@@ -15,7 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import kill.online.helper.ui.components.SwitchItemContainer
-import kill.online.helper.viewModel.GlobalVM
+import kill.online.helper.viewModel.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,7 +25,7 @@ fun RuleContent(
     ruleListState: LazyListState = rememberLazyListState(),
     checkedIndex: Int,
     onCheckedChange: (checkedIndex: Int) -> Unit,
-    globalVM: GlobalVM = viewModel()
+    appViewModel: AppViewModel = viewModel()
 ) {
 
     var isRuleConfigShow by remember { mutableStateOf(false) }

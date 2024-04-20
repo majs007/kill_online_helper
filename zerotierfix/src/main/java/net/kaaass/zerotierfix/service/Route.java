@@ -1,6 +1,6 @@
-package net.kaaass.zerotierfix.service;
+package kill.online.helper.zeroTier.service;
 
-import net.kaaass.zerotierfix.util.InetAddressUtils;
+import kill.online.helper.zeroTier.util.InetAddressUtils;
 
 import java.net.InetAddress;
 

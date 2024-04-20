@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.events;
+package kill.online.helper.zeroTier.events;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,8 +8,6 @@ import lombok.Data;
  * <p>
  * 当需要入轨某一 Moon 时触发，如用户配置入轨信息。该事件处理应仅进行入轨信息的管理，实际请求 ZT 的事件为
  * {@link OrbitMoonEvent}
- *
- * @author kaaass
  */
 @Data
 @AllArgsConstructor

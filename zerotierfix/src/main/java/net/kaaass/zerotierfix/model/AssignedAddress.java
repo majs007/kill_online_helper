@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.model;
+package kill.online.helper.zeroTier.model;
 
 import org.greenrobot.greendao.annotation.Convert;
 import org.greenrobot.greendao.annotation.Entity;
@@ -22,11 +22,11 @@ public class AssignedAddress {
     private String addressString;
 
     private short prefix;
-    
+
 
     @Generated(hash = 294212135)
     public AssignedAddress(Long id, long networkId, AddressType type, byte[] addressBytes,
-            String addressString, short prefix) {
+                           String addressString, short prefix) {
         this.id = id;
         this.networkId = networkId;
         this.type = type;

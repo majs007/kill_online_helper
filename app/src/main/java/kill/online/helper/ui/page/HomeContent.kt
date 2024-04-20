@@ -34,7 +34,7 @@ import kill.online.helper.ui.theme.appPadding
 import kill.online.helper.ui.theme.cardRoundedCorner
 import kill.online.helper.ui.theme.floatingButtonPadding
 import kill.online.helper.ui.theme.textPadding
-import kill.online.helper.viewModel.GlobalVM
+import kill.online.helper.viewModel.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +44,7 @@ fun HomeContent(
     roomListState: LazyListState = rememberLazyListState(),
 
     ) {
-    val globalVM: GlobalVM = viewModel()
+    val appViewModel: AppViewModel = viewModel()
     var isRoomInfoSheetShow by remember {
         mutableStateOf(false)
     }

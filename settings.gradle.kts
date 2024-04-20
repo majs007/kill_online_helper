@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-include(":app", ":core", ":zerotierfix")
+include(":app", ":core")
 rootProject.name = "kill联机助手"

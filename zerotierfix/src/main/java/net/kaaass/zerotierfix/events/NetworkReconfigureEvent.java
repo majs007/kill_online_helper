@@ -1,8 +1,8 @@
-package net.kaaass.zerotierfix.events;
+package kill.online.helper.zeroTier.events;
 
 import com.zerotier.sdk.VirtualNetworkConfig;
 
-import net.kaaass.zerotierfix.model.Network;
+import kill.online.helper.zeroTier.model.Network;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

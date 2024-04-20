@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.events;
+package kill.online.helper.zeroTier.events;
 
 import com.zerotier.sdk.Peer;
 
@@ -7,8 +7,6 @@ import lombok.Data;
 
 /**
  * 应答结点信息事件
- *
- * @author kaaass
  */
 @Data
 @AllArgsConstructor

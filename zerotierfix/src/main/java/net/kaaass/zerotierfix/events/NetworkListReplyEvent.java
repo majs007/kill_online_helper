@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.events;
+package kill.online.helper.zeroTier.events;
 
 import com.zerotier.sdk.VirtualNetworkConfig;
 

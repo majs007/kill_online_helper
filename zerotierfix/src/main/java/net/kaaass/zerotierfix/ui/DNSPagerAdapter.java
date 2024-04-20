@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -11,7 +11,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 
-import net.kaaass.zerotierfix.R;
+import kill.online.helper.zeroTier.R;
 
 /**
  * DNS 配置页适配器

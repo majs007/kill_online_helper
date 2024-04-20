@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 import android.app.AlertDialog;
 import android.content.ClipData;
@@ -37,38 +37,38 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.zerotier.sdk.NodeStatus;
 import com.zerotier.sdk.Version;
 
-import net.kaaass.zerotierfix.R;
-import net.kaaass.zerotierfix.ZerotierFixApplication;
-import net.kaaass.zerotierfix.events.AfterJoinNetworkEvent;
-import net.kaaass.zerotierfix.events.IsServiceRunningReplyEvent;
-import net.kaaass.zerotierfix.events.IsServiceRunningRequestEvent;
-import net.kaaass.zerotierfix.events.NetworkListCheckedChangeEvent;
-import net.kaaass.zerotierfix.events.NetworkListReplyEvent;
-import net.kaaass.zerotierfix.events.NetworkListRequestEvent;
-import net.kaaass.zerotierfix.events.NodeDestroyedEvent;
-import net.kaaass.zerotierfix.events.NodeIDEvent;
-import net.kaaass.zerotierfix.events.NodeStatusEvent;
-import net.kaaass.zerotierfix.events.NodeStatusRequestEvent;
-import net.kaaass.zerotierfix.events.OrbitMoonEvent;
-import net.kaaass.zerotierfix.events.StopEvent;
-import net.kaaass.zerotierfix.events.VPNErrorEvent;
-import net.kaaass.zerotierfix.events.VirtualNetworkConfigChangedEvent;
-import net.kaaass.zerotierfix.model.AppNode;
-import net.kaaass.zerotierfix.model.AssignedAddress;
-import net.kaaass.zerotierfix.model.AssignedAddressDao;
-import net.kaaass.zerotierfix.model.DaoSession;
-import net.kaaass.zerotierfix.model.MoonOrbit;
-import net.kaaass.zerotierfix.model.Network;
-import net.kaaass.zerotierfix.model.NetworkConfig;
-import net.kaaass.zerotierfix.model.NetworkConfigDao;
-import net.kaaass.zerotierfix.model.NetworkDao;
-import net.kaaass.zerotierfix.model.type.NetworkStatus;
-import net.kaaass.zerotierfix.service.ZeroTierOneService;
-import net.kaaass.zerotierfix.ui.view.NetworkDetailActivity;
-import net.kaaass.zerotierfix.ui.viewmodel.NetworkListModel;
-import net.kaaass.zerotierfix.util.Constants;
-import net.kaaass.zerotierfix.util.DatabaseUtils;
-import net.kaaass.zerotierfix.util.StringUtils;
+import kill.online.helper.zeroTier.R;
+import kill.online.helper.zeroTier.ZerotierFix;
+import kill.online.helper.zeroTier.events.AfterJoinNetworkEvent;
+import kill.online.helper.zeroTier.events.IsServiceRunningReplyEvent;
+import kill.online.helper.zeroTier.events.IsServiceRunningRequestEvent;
+import kill.online.helper.zeroTier.events.NetworkListCheckedChangeEvent;
+import kill.online.helper.zeroTier.events.NetworkListReplyEvent;
+import kill.online.helper.zeroTier.events.NetworkListRequestEvent;
+import kill.online.helper.zeroTier.events.NodeDestroyedEvent;
+import kill.online.helper.zeroTier.events.NodeIDEvent;
+import kill.online.helper.zeroTier.events.NodeStatusEvent;
+import kill.online.helper.zeroTier.events.NodeStatusRequestEvent;
+import kill.online.helper.zeroTier.events.OrbitMoonEvent;
+import kill.online.helper.zeroTier.events.StopEvent;
+import kill.online.helper.zeroTier.events.VPNErrorEvent;
+import kill.online.helper.zeroTier.events.VirtualNetworkConfigChangedEvent;
+import kill.online.helper.zeroTier.model.AppNode;
+import kill.online.helper.zeroTier.model.AssignedAddress;
+import kill.online.helper.zeroTier.model.AssignedAddressDao;
+import kill.online.helper.zeroTier.model.DaoSession;
+import kill.online.helper.zeroTier.model.MoonOrbit;
+import kill.online.helper.zeroTier.model.Network;
+import kill.online.helper.zeroTier.model.NetworkConfig;
+import kill.online.helper.zeroTier.model.NetworkConfigDao;
+import kill.online.helper.zeroTier.model.NetworkDao;
+import kill.online.helper.zeroTier.model.type.NetworkStatus;
+import kill.online.helper.zeroTier.service.ZeroTierOneService;
+import kill.online.helper.zeroTier.ui.view.NetworkDetailActivity;
+import kill.online.helper.zeroTier.ui.viewmodel.NetworkListModel;
+import kill.online.helper.zeroTier.util.Constants;
+import kill.online.helper.zeroTier.util.DatabaseUtils;
+import kill.online.helper.zeroTier.util.StringUtils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -221,6 +221,10 @@ public class NetworkListFragment extends Fragment {
         this.eventBus.unregister(this);
     }
 
+
+    /**
+     * 此函数完成fragment的初始化！！！！！
+     */
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         var VERSION_NAME = "1.0.10";
@@ -263,6 +267,7 @@ public class NetworkListFragment extends Fragment {
         return view;
     }
 
+
     /**
      * 发送连接至指定网络的 Intent。将请求 VPN 权限后启动 ZT 服务
      *
@@ -280,6 +285,7 @@ public class NetworkListFragment extends Fragment {
         startService(networkId);
     }
 
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "NetworkListFragment.onCreate");
@@ -290,6 +296,7 @@ public class NetworkListFragment extends Fragment {
         // 获取 ViewModel
         this.viewModel = new ViewModelProvider(requireActivity()).get(NetworkListModel.class);
     }
+
 
     @Override
     public void onResume() {
@@ -336,13 +343,13 @@ public class NetworkListFragment extends Fragment {
     }
 
     private List<Network> getNetworkList() {
-        DaoSession daoSession = ((ZerotierFixApplication) requireActivity().getApplication()).getDaoSession();
+        DaoSession daoSession = ZerotierFix.getDaoSession();
         daoSession.clear();
         return daoSession.getNetworkDao().queryBuilder().orderAsc(NetworkDao.Properties.NetworkId).build().forCurrentThread().list();
     }
 
     private void setNodeIdText() {
-        List<AppNode> list = ((ZerotierFixApplication) requireActivity().getApplication()).getDaoSession().getAppNodeDao().queryBuilder().build().forCurrentThread().list();
+        List<AppNode> list = ZerotierFix.getDaoSession().getAppNodeDao().queryBuilder().build().forCurrentThread().list();
         if (!list.isEmpty()) {
             this.nodeIdView.setText(list.get(0).getNodeIdStr());
         }
@@ -511,7 +518,7 @@ public class NetworkListFragment extends Fragment {
      * 获得 Moon 入轨配置列表
      */
     private List<MoonOrbit> getMoonOrbitList() {
-        DaoSession daoSession = ((ZerotierFixApplication) requireActivity().getApplication()).getDaoSession();
+        DaoSession daoSession = ZerotierFix.getDaoSession();
         return daoSession.getMoonOrbitDao().loadAll();
     }
 
@@ -541,6 +548,8 @@ public class NetworkListFragment extends Fragment {
             }
             stopService();
             this.viewModel.doChangeConnectNetwork(null);
+
+
             // 启动网络
             var context = requireContext();
             boolean useCellularData = PreferenceManager
@@ -725,7 +734,7 @@ public class NetworkListFragment extends Fragment {
                 popupMenu.setOnMenuItemClickListener(menuItem -> {
                     if (menuItem.getItemId() == R.id.menu_item_delete_network) {
                         // 删除对应网络
-                        DaoSession daoSession = ((ZerotierFixApplication) that.requireActivity().getApplication()).getDaoSession();
+                        DaoSession daoSession = ZerotierFix.getDaoSession();
                         AssignedAddressDao assignedAddressDao = daoSession.getAssignedAddressDao();
                         NetworkConfigDao networkConfigDao = daoSession.getNetworkConfigDao();
                         NetworkDao networkDao = daoSession.getNetworkDao();

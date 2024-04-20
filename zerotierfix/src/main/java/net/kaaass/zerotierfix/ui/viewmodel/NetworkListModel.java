@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui.viewmodel;
+package kill.online.helper.zeroTier.ui.viewmodel;
 
 import androidx.annotation.WorkerThread;
 import androidx.lifecycle.LiveData;

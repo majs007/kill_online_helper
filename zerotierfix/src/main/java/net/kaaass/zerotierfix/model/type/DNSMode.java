@@ -1,6 +1,6 @@
-package net.kaaass.zerotierfix.model.type;
+package kill.online.helper.zeroTier.model.type;
 
-import net.kaaass.zerotierfix.R;
+import kill.online.helper.zeroTier.R;
 
 public enum DNSMode {
     NO_DNS(0),

@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -19,15 +19,15 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.google.android.material.tabs.TabLayout;
 
-import net.kaaass.zerotierfix.ZerotierFixApplication;
-import net.kaaass.zerotierfix.R;
-import net.kaaass.zerotierfix.model.DaoSession;
-import net.kaaass.zerotierfix.model.DnsServer;
-import net.kaaass.zerotierfix.model.DnsServerDao;
-import net.kaaass.zerotierfix.model.Network;
-import net.kaaass.zerotierfix.model.NetworkConfig;
-import net.kaaass.zerotierfix.model.NetworkDao;
-import net.kaaass.zerotierfix.util.NetworkIdUtils;
+import kill.online.helper.zeroTier.R;
+import kill.online.helper.zeroTier.ZerotierFix;
+import kill.online.helper.zeroTier.model.DaoSession;
+import kill.online.helper.zeroTier.model.DnsServer;
+import kill.online.helper.zeroTier.model.DnsServerDao;
+import kill.online.helper.zeroTier.model.Network;
+import kill.online.helper.zeroTier.model.NetworkConfig;
+import kill.online.helper.zeroTier.model.NetworkDao;
+import kill.online.helper.zeroTier.util.NetworkIdUtils;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.greenrobot.eventbus.EventBus;
@@ -150,7 +150,7 @@ public class JoinNetworkFragment extends Fragment implements CustomDNSListener {
                     String obj = JoinNetworkFragment.this.mNetworkIdTextView.getText().toString();
                     long hexStringToLong = NetworkIdUtils.hexStringToLong(obj);
                     boolean isChecked = JoinNetworkFragment.this.mDefaultRouteCheckBox.isChecked();
-                    DaoSession daoSession = ((ZerotierFixApplication) JoinNetworkFragment.this.getActivity().getApplication()).getDaoSession();
+                    DaoSession daoSession = ZerotierFix.getDaoSession();
                     NetworkDao networkDao = daoSession.getNetworkDao();
                     if (!networkDao.queryBuilder().where(NetworkDao.Properties.NetworkId.eq(Long.valueOf(hexStringToLong)), new WhereCondition[0]).build().forCurrentThread().list().isEmpty()) {
                         Log.e(JoinNetworkFragment.TAG, "Network already present");

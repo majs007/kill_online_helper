@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.model;
+package kill.online.helper.zeroTier.model;
 
 import android.content.Context;
 
@@ -12,8 +12,6 @@ import lombok.Getter;
 
 /**
  * Moon 入轨信息实体
- *
- * @author kaaass
  */
 @Entity
 public class MoonOrbit {

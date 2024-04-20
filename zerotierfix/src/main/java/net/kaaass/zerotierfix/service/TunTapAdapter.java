@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.service;
+package kill.online.helper.zeroTier.service;
 
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
@@ -8,9 +8,9 @@ import com.zerotier.sdk.ResultCode;
 import com.zerotier.sdk.VirtualNetworkFrameListener;
 import com.zerotier.sdk.util.StringUtils;
 
-import net.kaaass.zerotierfix.util.DebugLog;
-import net.kaaass.zerotierfix.util.IPPacketUtils;
-import net.kaaass.zerotierfix.util.InetAddressUtils;
+import kill.online.helper.zeroTier.util.DebugLog;
+import kill.online.helper.zeroTier.util.IPPacketUtils;
+import kill.online.helper.zeroTier.util.InetAddressUtils;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -127,7 +127,7 @@ public class TunTapAdapter implements VirtualNetworkFrameListener {
                             boolean noDataBeenRead = true;
                             int readCount = TunTapAdapter.this.in.read(buffer.array());
                             if (readCount > 0) {
-                                DebugLog.d(TunTapAdapter.TAG, "Sending packet to ZeroTier. " + readCount + " bytes.");
+                                Log.d(TunTapAdapter.TAG, "Sending packet to ZeroTier. " + readCount + " bytes.");
                                 var readData = new byte[readCount];
                                 System.arraycopy(buffer.array(), 0, readData, 0, readCount);
                                 byte iPVersion = IPPacketUtils.getIPVersion(readData);
@@ -332,7 +332,7 @@ public class TunTapAdapter implements VirtualNetworkFrameListener {
             if (result != ResultCode.RESULT_OK) {
                 Log.e(TAG, "Error calling processVirtualNetworkFrame: " + result.toString());
             } else {
-                DebugLog.d(TAG, "Packet sent to ZT");
+                Log.d(TAG, "Packet sent to ZT");
                 this.ztService.setNextBackgroundTaskDeadline(nextDeadline[0]);
             }
         }
@@ -396,7 +396,7 @@ public class TunTapAdapter implements VirtualNetworkFrameListener {
     @Override
     public void onVirtualNetworkFrame(long networkId, long srcMac, long destMac, long etherType,
                                       long vlanId, byte[] frameData) {
-        DebugLog.d(TAG, "Got Virtual Network Frame. " +
+        Log.d(TAG, "Got Virtual Network Frame. " +
                 " Network ID: " + StringUtils.networkIdToString(networkId) +
                 " Source MAC: " + StringUtils.macAddressToString(srcMac) +
                 " Dest MAC: " + StringUtils.macAddressToString(destMac) +
@@ -439,7 +439,7 @@ public class TunTapAdapter implements VirtualNetworkFrameListener {
             }
         } else if (etherType == IPV4_PACKET) {
             // 收到 IPv4 包。根据需要发送至 TUN
-            DebugLog.d(TAG, "Got IPv4 packet. Length: " + frameData.length + " Bytes");
+            Log.d(TAG, "Got IPv4 packet. Length: " + frameData.length + " Bytes");
             try {
                 var sourceIP = IPPacketUtils.getSourceIP(frameData);
                 if (sourceIP != null) {
@@ -458,7 +458,7 @@ public class TunTapAdapter implements VirtualNetworkFrameListener {
             }
         } else if (etherType == IPV6_PACKET) {
             // 收到 IPv6 包。根据需要发送至 TUN，并更新 NDP 表
-            DebugLog.d(TAG, "Got IPv6 packet. Length: " + frameData.length + " Bytes");
+            Log.d(TAG, "Got IPv6 packet. Length: " + frameData.length + " Bytes");
             try {
                 var sourceIP = IPPacketUtils.getSourceIP(frameData);
                 if (sourceIP != null) {

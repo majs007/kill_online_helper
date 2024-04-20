@@ -1,6 +1,6 @@
-package net.kaaass.zerotierfix.events;
+package kill.online.helper.zeroTier.events;
 
-import net.kaaass.zerotierfix.model.MoonOrbit;
+import kill.online.helper.zeroTier.model.MoonOrbit;
 
 import java.util.List;
 
@@ -11,8 +11,6 @@ import lombok.Data;
  * Moon 入轨事件
  * <p>
  * 事件发生时应实际处理入轨动作
- *
- * @author kaaass
  */
 @Data
 @AllArgsConstructor

@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.service;
+package kill.online.helper.zeroTier.service;
 
 import android.util.Log;
 

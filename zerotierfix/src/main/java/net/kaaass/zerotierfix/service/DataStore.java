@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.service;
+package kill.online.helper.zeroTier.service;
 
 import android.content.Context;
 import android.util.Log;
@@ -8,7 +8,7 @@ import androidx.preference.PreferenceManager;
 import com.zerotier.sdk.DataStoreGetListener;
 import com.zerotier.sdk.DataStorePutListener;
 
-import net.kaaass.zerotierfix.util.Constants;
+import kill.online.helper.zeroTier.util.Constants;
 
 import java.io.File;
 import java.io.FileInputStream;

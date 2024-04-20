@@ -1,8 +1,8 @@
-package net.kaaass.zerotierfix.util;
+package kill.online.helper.zeroTier.util;
 
 import android.util.Log;
 
-import net.kaaass.zerotierfix.BuildConfig;
+import kill.online.helper.zeroTier.BuildConfig;
 
 /**
  * 调试日志相关的工具函数，用于控制部分日志仅在调试模式下输出

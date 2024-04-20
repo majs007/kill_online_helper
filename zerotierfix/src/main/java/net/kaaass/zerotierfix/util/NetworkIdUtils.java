@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.util;
+package kill.online.helper.zeroTier.util;
 
 import java.math.BigInteger;
 

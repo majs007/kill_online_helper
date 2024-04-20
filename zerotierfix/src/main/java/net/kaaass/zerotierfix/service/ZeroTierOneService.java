@@ -1,5 +1,6 @@
-package net.kaaass.zerotierfix.service;
+package kill.online.helper.zeroTier.service;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -26,40 +27,40 @@ import com.zerotier.sdk.VirtualNetworkConfigListener;
 import com.zerotier.sdk.VirtualNetworkConfigOperation;
 import com.zerotier.sdk.VirtualNetworkStatus;
 
-import net.kaaass.zerotierfix.R;
-import net.kaaass.zerotierfix.ZerotierFixApplication;
-import net.kaaass.zerotierfix.events.AfterJoinNetworkEvent;
-import net.kaaass.zerotierfix.events.ErrorEvent;
-import net.kaaass.zerotierfix.events.IsServiceRunningReplyEvent;
-import net.kaaass.zerotierfix.events.IsServiceRunningRequestEvent;
-import net.kaaass.zerotierfix.events.ManualDisconnectEvent;
-import net.kaaass.zerotierfix.events.NetworkConfigChangedByUserEvent;
-import net.kaaass.zerotierfix.events.NetworkListReplyEvent;
-import net.kaaass.zerotierfix.events.NetworkListRequestEvent;
-import net.kaaass.zerotierfix.events.NetworkReconfigureEvent;
-import net.kaaass.zerotierfix.events.NodeDestroyedEvent;
-import net.kaaass.zerotierfix.events.NodeIDEvent;
-import net.kaaass.zerotierfix.events.NodeStatusEvent;
-import net.kaaass.zerotierfix.events.NodeStatusRequestEvent;
-import net.kaaass.zerotierfix.events.OrbitMoonEvent;
-import net.kaaass.zerotierfix.events.PeerInfoReplyEvent;
-import net.kaaass.zerotierfix.events.PeerInfoRequestEvent;
-import net.kaaass.zerotierfix.events.StopEvent;
-import net.kaaass.zerotierfix.events.VPNErrorEvent;
-import net.kaaass.zerotierfix.events.VirtualNetworkConfigChangedEvent;
-import net.kaaass.zerotierfix.events.VirtualNetworkConfigReplyEvent;
-import net.kaaass.zerotierfix.events.VirtualNetworkConfigRequestEvent;
-import net.kaaass.zerotierfix.model.AppNode;
-import net.kaaass.zerotierfix.model.MoonOrbit;
-import net.kaaass.zerotierfix.model.Network;
-import net.kaaass.zerotierfix.model.NetworkDao;
-import net.kaaass.zerotierfix.model.type.DNSMode;
-import net.kaaass.zerotierfix.ui.NetworkListActivity;
-import net.kaaass.zerotierfix.util.Constants;
-import net.kaaass.zerotierfix.util.DatabaseUtils;
-import net.kaaass.zerotierfix.util.InetAddressUtils;
-import net.kaaass.zerotierfix.util.NetworkInfoUtils;
-import net.kaaass.zerotierfix.util.StringUtils;
+import kill.online.helper.zeroTier.R;
+import kill.online.helper.zeroTier.ZerotierFix;
+import kill.online.helper.zeroTier.events.AfterJoinNetworkEvent;
+import kill.online.helper.zeroTier.events.ErrorEvent;
+import kill.online.helper.zeroTier.events.IsServiceRunningReplyEvent;
+import kill.online.helper.zeroTier.events.IsServiceRunningRequestEvent;
+import kill.online.helper.zeroTier.events.ManualDisconnectEvent;
+import kill.online.helper.zeroTier.events.NetworkConfigChangedByUserEvent;
+import kill.online.helper.zeroTier.events.NetworkListReplyEvent;
+import kill.online.helper.zeroTier.events.NetworkListRequestEvent;
+import kill.online.helper.zeroTier.events.NetworkReconfigureEvent;
+import kill.online.helper.zeroTier.events.NodeDestroyedEvent;
+import kill.online.helper.zeroTier.events.NodeIDEvent;
+import kill.online.helper.zeroTier.events.NodeStatusEvent;
+import kill.online.helper.zeroTier.events.NodeStatusRequestEvent;
+import kill.online.helper.zeroTier.events.OrbitMoonEvent;
+import kill.online.helper.zeroTier.events.PeerInfoReplyEvent;
+import kill.online.helper.zeroTier.events.PeerInfoRequestEvent;
+import kill.online.helper.zeroTier.events.StopEvent;
+import kill.online.helper.zeroTier.events.VPNErrorEvent;
+import kill.online.helper.zeroTier.events.VirtualNetworkConfigChangedEvent;
+import kill.online.helper.zeroTier.events.VirtualNetworkConfigReplyEvent;
+import kill.online.helper.zeroTier.events.VirtualNetworkConfigRequestEvent;
+import kill.online.helper.zeroTier.model.AppNode;
+import kill.online.helper.zeroTier.model.MoonOrbit;
+import kill.online.helper.zeroTier.model.Network;
+import kill.online.helper.zeroTier.model.NetworkDao;
+import kill.online.helper.zeroTier.model.type.DNSMode;
+import kill.online.helper.zeroTier.ui.NetworkListActivity;
+import kill.online.helper.zeroTier.util.Constants;
+import kill.online.helper.zeroTier.util.DatabaseUtils;
+import kill.online.helper.zeroTier.util.InetAddressUtils;
+import kill.online.helper.zeroTier.util.NetworkInfoUtils;
+import kill.online.helper.zeroTier.util.StringUtils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -238,6 +239,7 @@ public class ZeroTierOneService extends VpnService implements Runnable, EventLis
         Log.i(TAG, "Bind Count: " + this.bindCount);
     }
 
+    @SuppressLint("BinderGetCallingInMainThread")
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "Bound by: " + getPackageManager().getNameForUid(Binder.getCallingUid()));
         this.bindCount++;
@@ -288,7 +290,7 @@ public class ZeroTierOneService extends VpnService implements Runnable, EventLis
             // 默认启用最近一次启动的网络
             DatabaseUtils.readLock.lock();
             try {
-                var daoSession = ((ZerotierFixApplication) getApplication()).getDaoSession();
+                var daoSession = ZerotierFix.getDaoSession();
                 daoSession.clear();
                 var lastActivatedNetworks = daoSession.getNetworkDao().queryBuilder()
                         .where(NetworkDao.Properties.LastActivated.eq(true))
@@ -372,7 +374,7 @@ public class ZeroTierOneService extends VpnService implements Runnable, EventLis
                     long address = this.node.address();
                     DatabaseUtils.writeLock.lock();
                     try {
-                        var appNodeDao = ((ZerotierFixApplication) getApplication())
+                        var appNodeDao = ZerotierFix
                                 .getDaoSession().getAppNodeDao();
                         var nodesList = appNodeDao.queryBuilder().build()
                                 .forCurrentThread().list();
@@ -718,7 +720,7 @@ public class ZeroTierOneService extends VpnService implements Runnable, EventLis
         DatabaseUtils.writeLock.lock();
         try {
             // 查找网络 ID 对应的配置
-            var networkDao = ((ZerotierFixApplication) getApplication())
+            var networkDao = ZerotierFix
                     .getDaoSession()
                     .getNetworkDao();
             var matchedNetwork = networkDao.queryBuilder()

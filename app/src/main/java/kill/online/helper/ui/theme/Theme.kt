@@ -38,7 +38,7 @@ onSurface = Color(0xFF1C1B1F),
 )
 
 @Composable
-fun Kill联机助手Theme(
+fun killTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,

@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -8,8 +8,6 @@ import androidx.fragment.app.Fragment;
 
 /**
  * 入轨配置 fragment 的容器 activity
- *
- * @author kaaass
  */
 public class MoonOrbitActivity extends SingleFragmentActivity {
     @Override

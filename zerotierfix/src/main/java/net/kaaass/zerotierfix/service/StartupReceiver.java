@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.service;
+package kill.online.helper.zeroTier.service;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
-import net.kaaass.zerotierfix.util.Constants;
+import kill.online.helper.zeroTier.util.Constants;
 
 // TODO: clear up
 public class StartupReceiver extends BroadcastReceiver {

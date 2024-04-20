@@ -1,8 +1,8 @@
-package net.kaaass.zerotierfix.model.type;
+package kill.online.helper.zeroTier.model.type;
 
 import com.zerotier.sdk.VirtualNetworkStatus;
 
-import net.kaaass.zerotierfix.R;
+import kill.online.helper.zeroTier.R;
 
 public enum NetworkStatus {
     REQUESTING_CONFIGURATION(0), OK(1), ACCESS_DENIED(2), NOT_FOUND(3), PORT_ERROR(4), CLIENT_TOO_OLD(5), AUTHENTICATION_REQUIRED(6);

@@ -1,4 +1,4 @@
-package net.kaaass.zerotierfix.ui;
+package kill.online.helper.zeroTier.ui;
 
 import android.os.Bundle;
 import android.text.Editable;
@@ -10,7 +10,7 @@ import android.widget.EditText;
 
 import androidx.fragment.app.Fragment;
 
-import net.kaaass.zerotierfix.R;
+import kill.online.helper.zeroTier.R;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 
