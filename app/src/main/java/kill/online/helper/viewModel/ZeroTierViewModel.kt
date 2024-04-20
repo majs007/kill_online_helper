@@ -1,44 +1,56 @@
 package kill.online.helper.viewModel
 
-import android.content.ComponentName
-import android.content.Intent
-import android.content.ServiceConnection
-import android.os.IBinder
-import androidx.activity.result.ActivityResultLauncher
+import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import com.zerotier.sdk.Peer
-import kill.online.helper.data.DnsConfig
-import kill.online.helper.data.ZeroTierConfig
-import kill.online.helper.zeroTier.events.NodeStatusEvent
-import kill.online.helper.zeroTier.model.Network
-import kill.online.helper.zeroTier.service.ZeroTierOneService
-
-import org.greenrobot.eventbus.EventBus
+import kill.online.helper.data.Member
+import kill.online.helper.data.ModifyMember
+import kill.online.helper.repository.NetworkRepository
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class ZeroTierViewModel : ViewModel() {
-    private val eventBus: EventBus = EventBus.getDefault()
-    private val networkConfig: ZeroTierConfig =
-        ZeroTierConfig(
-            "a09acf02339ffab1", true, DnsConfig.NoDNS,
-            null, null, null, null
-        )
-    private var isBound = false
-    private var boundService: ZeroTierOneService? = null
-    private val connection: ServiceConnection = object : ServiceConnection {
-        override fun onServiceConnected(componentName: ComponentName, iBinder: IBinder) {
-            this@ZeroTierViewModel.boundService =
-                (iBinder as ZeroTierOneService.ZeroTierBinder).service
-        }
+    val members = mutableStateOf(listOf<Member>())
 
-        override fun onServiceDisconnected(componentName: ComponentName) {
-            this@ZeroTierViewModel.boundService = null
-            this@ZeroTierViewModel.isBound = false
-        }
+    fun getMembers(networkID: String) {
+        NetworkRepository.zeroTier.getMembers(networkID).enqueue(object : Callback<List<Member>> {
+            override fun onResponse(call: Call<List<Member>>, response: Response<List<Member>>) {
+                response.body()?.let { it ->
+                    members.value = it.toMutableList()
+                }
+            }
+
+            override fun onFailure(call: Call<List<Member>>, t: Throwable) {
+                t.printStackTrace()
+                println("request wrong")
+            }
+        })
     }
-    private val vpnAuthLauncher: ActivityResultLauncher<Intent>? = null
-    private val networks = mutableListOf<Network>()
-    private val peers = mutableListOf<Peer>()
-    private var onNodeStatus: (event: NodeStatusEvent) -> Unit = {}
 
+    fun modifyMember(networkID: String, memberID: String, name: String, description: String) {
+        // TODO 构造modifyMember对象
+        val modifyMember = ModifyMember(name = name, description = description)
 
+        NetworkRepository.zeroTier.modifyMember(networkID, memberID, modifyMember)
+            .enqueue(object : Callback<Member> {
+                override fun onResponse(call: Call<Member>, response: Response<Member>) {
+                    response.body()?.let {
+                        val result = it.name == name && it.description == description
+                        Log.i("modifyMember", "result: $result")
+                        members.value.first { members ->
+                            members.id == memberID
+                        }.let { member ->
+                            member.name = it.name
+                            member.description = it.description
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call<Member>, t: Throwable) {
+                    t.printStackTrace()
+                    println("request wrong")
+                }
+            })
+    }
 }
