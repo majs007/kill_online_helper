@@ -29,9 +29,7 @@ class ZeroTierViewModel : ViewModel() {
     }
 
     fun modifyMember(networkID: String, memberID: String, name: String, description: String) {
-        // TODO 构造modifyMember对象
         val modifyMember = ModifyMember(name = name, description = description)
-
         NetworkRepository.zeroTier.modifyMember(networkID, memberID, modifyMember)
             .enqueue(object : Callback<Member> {
                 override fun onResponse(call: Call<Member>, response: Response<Member>) {

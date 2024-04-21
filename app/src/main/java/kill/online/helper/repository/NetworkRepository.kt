@@ -43,13 +43,19 @@ object NetworkRepository {
         .hostnameVerifier { _, _ -> true }
 
 
-    private val retrofit: Retrofit = Retrofit.Builder()
+    private val zeroRetrofit: Retrofit = Retrofit.Builder()
         .baseUrl("https://api.zerotier.com/api/v1/")
         .addConverterFactory(GsonConverterFactory.create())
         .client(client.build())
         .build()
+    private val appRetrofit: Retrofit = Retrofit.Builder()
+        .baseUrl("https://")
+        .addConverterFactory(GsonConverterFactory.create())
+        .client(client.build())
+        .build()
 
-    val zeroTier: ZeroTierService = retrofit.create(ZeroTierService::class.java)
+    val zeroTier: ZeroTierClient = zeroRetrofit.create(ZeroTierClient::class.java)
+    val appClient: AppClient = appRetrofit.create(AppClient::class.java)
 
 }
 
