@@ -1,4 +1,4 @@
-package kill.online.helper.repository
+package kill.online.helper.client.route
 
 import kill.online.helper.data.Member
 import kill.online.helper.data.ModifyMember

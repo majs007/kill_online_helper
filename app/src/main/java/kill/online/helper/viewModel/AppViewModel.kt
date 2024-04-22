@@ -2,10 +2,10 @@ package kill.online.helper.viewModel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import kill.online.helper.client.NetworkRepository
 import kill.online.helper.data.Message
 import kill.online.helper.data.MessageResponse
-import kill.online.helper.repository.NetworkRepository
-import kill.online.helper.service.HttpServer
+import kill.online.helper.server.HttpServer
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response

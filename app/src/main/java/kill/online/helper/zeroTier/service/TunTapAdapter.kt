@@ -32,6 +32,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     private var out: FileOutputStream? = null
     private var receiveThread: Thread? = null
     private var vpnSocket: ParcelFileDescriptor? = null
+    private var onHandleIPPacket: (packetData: ByteArray) -> ByteArray = { it }
     private fun addMulticastRoutes() {}
     fun setNode(node: Node?) {
         this.node = node
@@ -133,11 +134,11 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     }
 
     private fun handleIPv4Packet(packetData: ByteArray) {
-        var packetData: ByteArray = packetData
+        var handledPacketData: ByteArray = onHandleIPPacket(packetData)
         val isMulticast: Boolean
         val destMac: Long
-        var destIP: InetAddress? = IPPacketUtils.getDestIP(packetData)
-        val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(packetData)
+        var destIP: InetAddress? = IPPacketUtils.getDestIP(handledPacketData)
+        val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(handledPacketData)
         val virtualNetworkConfig: VirtualNetworkConfig? = ztService.node.networkConfig(networkId)
         if (virtualNetworkConfig == null) {
             Log.e(TAG, "TunTapAdapter has no network config yet")
@@ -198,7 +199,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 destMac,
                 IPV4_PACKET,
                 0,
-                packetData,
+                handledPacketData,
                 nextDeadline
             )
             if (result != ResultCode.RESULT_OK) {
@@ -211,7 +212,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
             // 目标 MAC 未知，进行 ARP 查询
             Log.d(TAG, "Unknown dest MAC address.  Need to look it up. $destIP")
             destMac = InetAddressUtils.BROADCAST_MAC_ADDRESS
-            packetData = arpTable!!.getRequestPacket(localMac, localV4Address, destIP)
+            handledPacketData = arpTable!!.getRequestPacket(localMac, localV4Address, destIP)
             val result: ResultCode = node!!.processVirtualNetworkFrame(
                 System.currentTimeMillis(),
                 networkId,
@@ -219,7 +220,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 destMac,
                 ARP_PACKET,
                 0,
-                packetData,
+                handledPacketData,
                 nextDeadline
             )
             if (result != ResultCode.RESULT_OK) {
@@ -232,9 +233,9 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     }
 
     private fun handleIPv6Packet(packetData: ByteArray) {
-        var packetData: ByteArray = packetData
-        var destIP: InetAddress? = IPPacketUtils.getDestIP(packetData)
-        val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(packetData)
+        var handledPacketData: ByteArray = onHandleIPPacket(packetData)
+        var destIP: InetAddress? = IPPacketUtils.getDestIP(handledPacketData)
+        val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(handledPacketData)
         val virtualNetworkConfig: VirtualNetworkConfig? = ztService.node.networkConfig(networkId)
         if (virtualNetworkConfig == null) {
             Log.e(TAG, "TunTapAdapter has no network config yet")
@@ -282,7 +283,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
         // 确定目标 MAC 地址
         var destMac: Long
         var sendNSPacket = false
-        if (isNeighborSolicitation(packetData)) {
+        if (isNeighborSolicitation(handledPacketData)) {
             // 收到本地 NS 报文，根据 NDP 表记录确定是否广播查询
             destMac = if (ndpTable!!.hasMacForAddress(destIP)) {
                 ndpTable!!.getMacForAddress(destIP)
@@ -292,7 +293,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
         } else if (isIPv6Multicast(destIP)) {
             // 多播报文
             destMac = multicastAddressToMAC(destIP)
-        } else if (isNeighborAdvertisement(packetData)) {
+        } else if (isNeighborAdvertisement(handledPacketData)) {
             // 收到本地 NA 报文
             destMac = if (ndpTable!!.hasMacForAddress(destIP)) {
                 ndpTable!!.getMacForAddress(destIP)
@@ -320,7 +321,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 destMac,
                 IPV6_PACKET,
                 0,
-                packetData,
+                handledPacketData,
                 nextDeadline
             )
             if (result != ResultCode.RESULT_OK) {
@@ -336,7 +337,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 destMac = InetAddressUtils.ipv6ToMulticastAddress(destIP)
             }
             Log.d(TAG, "Sending Neighbor Solicitation")
-            packetData = ndpTable!!.getNeighborSolicitationPacket(sourceIP, destIP, localMac)
+            handledPacketData = ndpTable!!.getNeighborSolicitationPacket(sourceIP, destIP, localMac)
             val result: ResultCode = node!!.processVirtualNetworkFrame(
                 System.currentTimeMillis(),
                 networkId,
@@ -344,7 +345,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 destMac,
                 IPV6_PACKET,
                 0,
-                packetData,
+                handledPacketData,
                 nextDeadline
             )
             if (result != ResultCode.RESULT_OK) {
@@ -354,6 +355,10 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 ztService.nextBackgroundTaskDeadline = nextDeadline[0]
             }
         }
+    }
+
+    fun setOnHandleIPPacket(lambda: (packetData: ByteArray) -> ByteArray) {
+        this.onHandleIPPacket = lambda
     }
 
     fun interrupt() {

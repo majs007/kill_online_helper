@@ -1,4 +1,4 @@
-package kill.online.helper.service
+package kill.online.helper.server
 
 import android.util.Log
 import com.google.gson.Gson

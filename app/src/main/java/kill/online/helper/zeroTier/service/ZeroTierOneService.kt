@@ -52,7 +52,9 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
     private var outputStream: FileOutputStream? = null
     private var bindCount by Delegates.notNull<Int>()
     private var disableIPv6 by Delegates.notNull<Boolean>()
+
     private var startID by Delegates.notNull<Int>()
+
     private var networkId by Delegates.notNull<Long>()
     var nextBackgroundTaskDeadline by Delegates.notNull<Long>()
     private var svrSocket: DatagramSocket = DatagramSocket(null)
@@ -375,6 +377,10 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         Log.d(TAG, "Trace: $str")
     }
 
+    fun setOnHandleIPPacket(lambda: (packetData: ByteArray) -> ByteArray) {
+        this.tunTapAdapter.setOnHandleIPPacket(lambda)
+    }
+
     override fun onNetworkConfigurationUpdated(
         networkId: Long,
         op: VirtualNetworkConfigOperation,
@@ -412,9 +418,9 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
             context = this,
             itemName = FileUtils.ItemName.NetworkConfig,
             defValue = null
-        )?.filter {
+        )?.first {
             it.networkId == networkId.toString()
-        }?.get(0)
+        }
         // 重启 TUN TAP
         if (tunTapAdapter.isRunning) {
             tunTapAdapter.interrupt()

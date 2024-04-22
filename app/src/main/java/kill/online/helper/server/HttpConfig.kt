@@ -1,4 +1,4 @@
-package kill.online.helper.service
+package kill.online.helper.server
 
 
 const val HTTP_PORT = 176542

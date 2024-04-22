@@ -1,8 +1,8 @@
-package kill.online.helper.repository
+package kill.online.helper.client.route
 
 import kill.online.helper.data.Message
 import kill.online.helper.data.MessageResponse
-import kill.online.helper.service.URI_MESSAGE
+import kill.online.helper.server.URI_MESSAGE
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.POST
