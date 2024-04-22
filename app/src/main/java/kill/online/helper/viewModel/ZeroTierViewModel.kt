@@ -1,6 +1,7 @@
 package kill.online.helper.viewModel
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -9,12 +10,17 @@ import android.net.VpnService
 import android.os.IBinder
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.app.ActivityCompat.startActivityForResult
 import androidx.lifecycle.ViewModel
 import kill.online.helper.client.NetworkRepository
+import kill.online.helper.data.AppSetting
 import kill.online.helper.data.Member
 import kill.online.helper.data.ModifyMember
+import kill.online.helper.utils.FileUtils
 import kill.online.helper.utils.KillPacketType
 import kill.online.helper.utils.getPacketType
+import kill.online.helper.zeroTier.model.UserNetwork
+import kill.online.helper.zeroTier.model.UserNetworkConfig
 import kill.online.helper.zeroTier.service.ZeroTierOneService
 import retrofit2.Call
 import retrofit2.Callback
@@ -37,28 +43,35 @@ class ZeroTierViewModel : ViewModel() {
         }
     }
 
-    val members = mutableStateOf(listOf<Member>())
+    private lateinit var ztNetworkConfig: List<UserNetworkConfig>
+    private lateinit var ztNetwork: List<UserNetwork>
+    private lateinit var appSetting: AppSetting
 
-    fun startZeroTier(context: Context, networkId: Long) {
-        val prepare = VpnService.prepare(context)
-        if (prepare != null) {
-            // 等待 VPN 授权后连接网络
-            //vpnAuthLauncher.launch(prepare)
-            return
+    val members = mutableStateOf(listOf<Member>())
+    val isZTRunning = mutableStateOf(false)
+
+    fun startZeroTier(context: Context, networkId: Long = getLastActivatedNetworkId().toLong()) {
+        //加载配置
+        loadZTConfig(context)
+        //初始化 VPN 授权
+        val vpnIntent = VpnService.prepare(context)
+        if (vpnIntent != null) {
+            // 打开系统设置界面
+            startActivityForResult(context as Activity, vpnIntent, 0, null)
         }
         Log.i(TAG, "Intent is NULL.  Already approved.")
-        val intent = Intent(
+        val ztIntent = Intent(
             context,
             ZeroTierOneService::class.java
         )
-        intent.putExtra(ZeroTierOneService.ZT_NETWORK_ID, networkId)
+        ztIntent.putExtra(ZeroTierOneService.ZT_NETWORK_ID, networkId)
         //绑定服务
         context.bindService(
-            intent, this.ztConnection,
+            ztIntent, this.ztConnection,
             Context.BIND_NOT_FOREGROUND or Context.BIND_DEBUG_UNBIND
         )
         //启动服务
-        context.startService(intent)
+        context.startService(ztIntent)
         setGamePacketCallBack()
     }
 
@@ -105,6 +118,73 @@ class ZeroTierViewModel : ViewModel() {
 
     }
 
+    private fun loadZTConfig(context: Context) {
+        ztNetworkConfig = FileUtils.read(
+            context = context,
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.NetworkConfig,
+            defValue = listOf()
+        )
+        ztNetwork = FileUtils.read(
+            context = context,
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.Network,
+            defValue = listOf()
+        )
+        appSetting = FileUtils.read(
+            context = context,
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.AppSetting,
+            defValue = AppSetting()
+        )
+        Log.i(TAG, "loadZTConfig: succeed to load ztNetworkConfig ztNetwork appSetting")
+    }
+
+    fun getLastActivatedNetworkId(): String {
+        return ztNetwork.first {
+            it.lastActivated
+        }.networkId
+    }
+
+    private fun saveZTConfig(context: Context) {
+        FileUtils.write(
+            context = context,
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.NetworkConfig,
+            content = ztNetworkConfig
+        )
+        FileUtils.write(
+            context = context,
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.Network,
+            content = ztNetwork
+        )
+        FileUtils.write(
+            context = context,
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.AppSetting,
+            content = appSetting
+        )
+        Log.i(TAG, "saveZTConfig: succeed to save ztNetworkConfig ztNetwork appSetting")
+    }
+
+    fun updateNetworkStatus(
+        context: Context,
+        networkId: String,
+        networkName: String? = null,
+        enabled: Boolean? = null,
+        lastActivated: Boolean? = null,
+    ) {
+        ztNetwork.first {
+            it.networkId == networkId
+        }.let { net ->
+            networkName?.run { net.networkName = networkName }
+            enabled?.run { net.enabled = enabled }
+            lastActivated?.run { net.lastActivated = lastActivated }
+
+        }
+        saveZTConfig(context)
+    }
 
     fun getMembers(networkID: String) {
         NetworkRepository.zeroTier.getMembers(networkID).enqueue(object : Callback<List<Member>> {

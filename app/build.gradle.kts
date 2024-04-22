@@ -76,7 +76,8 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.4.0")
     implementation("com.squareup.retrofit2:converter-gson:2.1.0")
     implementation("org.nanohttpd:nanohttpd:2.3.1")
-
+    implementation("com.github.jenly1314.UltraSwipeRefresh:refresh:1.1.1")
+    implementation("com.github.jenly1314.UltraSwipeRefresh:refresh-indicator-lottie:1.1.1")
     implementation("com.google.code.gson:gson:2.10.1")
 
     testImplementation("junit:junit:4.13.2")

@@ -1,5 +1,9 @@
 package kill.online.helper.data
 
+data class AppSetting(
+    val useCellularData: Boolean = true,
+    val disableIpv6: Boolean = false,
+)
 
 data class Message(
     val playerName: String,

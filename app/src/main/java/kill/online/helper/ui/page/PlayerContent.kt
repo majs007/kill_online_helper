@@ -1,104 +1,138 @@
 package kill.online.helper.ui.page
 
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.king.ultraswiperefresh.NestedScrollMode
+import com.king.ultraswiperefresh.UltraSwipeRefresh
+import com.king.ultraswiperefresh.rememberUltraSwipeRefreshState
 import kill.online.helper.ui.components.BasicItemContainer
+import kill.online.helper.viewModel.ZeroTierViewModel
+import kotlinx.coroutines.delay
+import java.util.concurrent.TimeUnit
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PlayerContent(
     navController: NavHostController,
     playerListState: LazyListState = rememberLazyListState()
 ) {
-    data class PlayerInfo(val name: String, val lastSeen: Int)
-
-    val players = remember {
-        listOf(
-            PlayerInfo("章鱼哥", 0), PlayerInfo("派大星", 1),
-            PlayerInfo("海绵宝宝", 2), PlayerInfo("小蜗", 3),
-            PlayerInfo("蟹老板", 4), PlayerInfo("神秘奇男子AAA", 5),
-            PlayerInfo("章鱼大哥", 6), PlayerInfo("大蜗", 7),
-            PlayerInfo("海绵宝宝", 8), PlayerInfo("小蜗", 9),
-            PlayerInfo("蟹老板", 10), PlayerInfo("神秘奇男子AAA", 11),
-        )
+    val ztViewModel: ZeroTierViewModel = viewModel()
+    val state = rememberUltraSwipeRefreshState()
+    val currentTime = remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(state.isRefreshing) {
+        if (state.isRefreshing) {
+            ztViewModel.getMembers(ztViewModel.getLastActivatedNetworkId())
+            state.isRefreshing = false
+        }
     }
-    LazyColumn(state = playerListState) {
-        itemsIndexed(players) { index, item ->
-            when (item.lastSeen) {
-                0 -> {
-                    BasicItemContainer(icon = "🥳", text = { item.name }, subText = { "状态：在线" })
+    LaunchedEffect(state.isLoading) {
+        if (state.isLoading) {
+            delay(2000)
+
+            state.isLoading = false
+        }
+    }
+    UltraSwipeRefresh(
+        state = state,
+        onRefresh = { state.isRefreshing = true },
+        onLoadMore = { state.isLoading = true },
+        modifier = Modifier,
+        headerScrollMode = NestedScrollMode.Translate,
+        footerScrollMode = NestedScrollMode.Translate,
+    ) {
+        LazyColumn(state = playerListState) {
+            itemsIndexed(ztViewModel.members.value) { index, item ->
+                val milliseconds = currentTime.longValue - item.lastSeen
+                val dayNumber =
+                    TimeUnit.MILLISECONDS.toDays(currentTime.longValue - item.lastSeen).toInt()
+
+                when {
+                    dayNumber == 0 && milliseconds < 5000 -> {
+                        BasicItemContainer(
+                            icon = "🥳",
+                            text = { item.name },
+                            subText = { "状态：在线" })
+                    }
+
+                    dayNumber == 0 -> {
+                        BasicItemContainer(
+                            icon = "🥰",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber + 1}天内" })
+                    }
+
+                    dayNumber == 2 -> {
+                        BasicItemContainer(
+                            icon = "😎",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber + 1}天前" })
+                    }
+
+                    dayNumber == 3 -> {
+                        BasicItemContainer(
+                            icon = "😶",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber + 1}天前" })
+                    }
+
+                    dayNumber == 4 -> {
+                        BasicItemContainer(
+                            icon = "😐",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber + 1}天前" })
+                    }
+
+                    dayNumber == 5 -> {
+                        BasicItemContainer(
+                            icon = "🤔",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber + 1}天前" })
+                    }
+
+                    dayNumber == 6 -> {
+                        BasicItemContainer(
+                            icon = "😕",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber + 1}天前" })
+                    }
+
+                    dayNumber == 7 -> {
+                        BasicItemContainer(
+                            icon = "😥",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber + 1}天前" })
+                    }
+
+                    dayNumber == 8 -> {
+                        BasicItemContainer(
+                            icon = "😖",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber + 1}天前" })
+                    }
+
+                    else -> {
+                        BasicItemContainer(
+                            icon = "😭",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber + 1}天前" })
+                    }
                 }
 
-                1 -> {
-                    BasicItemContainer(
-                        icon = "🥰",
-                        text = { item.name },
-                        subText = { "状态：${item.lastSeen}天内" })
-                }
-
-                2 -> {
-                    BasicItemContainer(
-                        icon = "😎",
-                        text = { item.name },
-                        subText = { "状态：${item.lastSeen - 1}天多前" })
-                }
-
-                3 -> {
-                    BasicItemContainer(
-                        icon = "😶",
-                        text = { item.name },
-                        subText = { "状态：${item.lastSeen - 1}天多前" })
-                }
-
-                4 -> {
-                    BasicItemContainer(
-                        icon = "😐",
-                        text = { item.name },
-                        subText = { "状态：${item.lastSeen - 1}天多前" })
-                }
-
-                5 -> {
-                    BasicItemContainer(
-                        icon = "🤔",
-                        text = { item.name },
-                        subText = { "状态：${item.lastSeen - 1}天多前" })
-                }
-
-                6 -> {
-                    BasicItemContainer(
-                        icon = "😕",
-                        text = { item.name },
-                        subText = { "状态：${item.lastSeen - 1}天多前" })
-                }
-
-                7 -> {
-                    BasicItemContainer(
-                        icon = "😥",
-                        text = { item.name },
-                        subText = { "状态：${item.lastSeen - 1}天多前" })
-                }
-
-                8 -> {
-                    BasicItemContainer(
-                        icon = "😖",
-                        text = { item.name },
-                        subText = { "状态：${item.lastSeen - 1}天多前" })
-                }
-
-                else -> {
-                    BasicItemContainer(
-                        icon = "😭",
-                        text = { item.name },
-                        subText = { "状态：${item.lastSeen - 1}多天前" })
-                }
             }
 
         }
-
     }
+
 }

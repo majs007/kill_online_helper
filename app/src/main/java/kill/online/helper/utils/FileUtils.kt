@@ -8,6 +8,7 @@ object FileUtils {
     sealed class ItemName(val name: String) {
         data object Network : ItemName("network")
         data object NetworkConfig : ItemName("networkConfig")
+        data object AppSetting : ItemName("appSetting")
         data object UseCellularData : ItemName("useCellularData")
         data object DisableIpv6 : ItemName("DisableIpv6")
     }
@@ -55,7 +56,7 @@ object FileUtils {
         dataType: DataType = DataType.Json,
         itemName: ItemName,
         content: T,
-        callback: (strContent: String) -> Unit
+        callback: (strContent: String) -> Unit = {}
     ) {
         val gson = Gson()
         val editor = context.getSharedPreferences(fileName, Context.MODE_PRIVATE).edit()

@@ -11,8 +11,8 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class AppViewModel : ViewModel() {
+    private val TAG = "AppViewModel"
     private val httpServer = HttpServer()
-    val TAG = "AppViewModel"
     val players = listOf("章鱼哥", "派大星", "海绵宝宝", "小蜗", "蟹老板", "神秘奇男子AAA")
 
     fun sendMessage(ip: String, msg: Message) {
