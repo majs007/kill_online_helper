@@ -25,9 +25,9 @@ import com.zerotier.sdk.VirtualNetworkConfigOperation
 import com.zerotier.sdk.util.StringUtils.addressToString
 import kill.online.helper.MainActivity
 import kill.online.helper.R
+import kill.online.helper.data.AppSetting
 import kill.online.helper.utils.FileUtils
 import kill.online.helper.utils.FileUtils.read
-
 import kill.online.helper.zeroTier.model.UserNetworkConfig
 import kill.online.helper.zeroTier.model.type.DNSMode
 import kill.online.helper.zeroTier.util.Constants
@@ -37,6 +37,7 @@ import kill.online.helper.zeroTier.util.NetworkInfoUtils.CurrentConnection
 import kill.online.helper.zeroTier.util.StringUtils
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.math.BigInteger
 import java.net.DatagramSocket
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -50,21 +51,19 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
     private val dataStore = DataStore(this)
     private var inputStream: FileInputStream? = null
     private var outputStream: FileOutputStream? = null
-    private var bindCount by Delegates.notNull<Int>()
     private var disableIPv6 by Delegates.notNull<Boolean>()
-
     private var startID by Delegates.notNull<Int>()
-
     private var networkId by Delegates.notNull<Long>()
-    var nextBackgroundTaskDeadline by Delegates.notNull<Long>()
+    var nextBackgroundTaskDeadline: Long = 0
     private var svrSocket: DatagramSocket = DatagramSocket(null)
     val node: Node = Node(System.currentTimeMillis())
     private var vpnSocket: ParcelFileDescriptor? = null
     private var notificationManager: NotificationManager? = null
-    private var tunTapAdapter: TunTapAdapter = TunTapAdapter(this, networkId)
     private var udpCom: UdpCom = UdpCom(this, svrSocket)
     private var udpThread: Thread = Thread(udpCom, "UDP Communication Thread")
-    private var vpnThread: Thread = Thread(this, "ZeroTier Service Thread")
+
+    private lateinit var tunTapAdapter: TunTapAdapter
+    private var vpnThread: Thread = Thread(this, "VPN Thread")
     private var v4MulticastScanner: Thread = object : Thread() {
         var subscriptions: List<String> = ArrayList()
         override fun run() {
@@ -189,21 +188,21 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
             Log.d(TAG, "IPv6 Multicast Scanner Thread Ended.")
         }
     }
-
+    private var onStartZeroTier: () -> Unit = {}
+    private var onStopZeroTier: () -> Unit = {}
 
     @SuppressLint("BinderGetCallingInMainThread")
     override fun onBind(intent: Intent): IBinder {
         Log.d(TAG, "Bound by: " + packageManager.getNameForUid(Binder.getCallingUid()))
-        bindCount++
         return mBinder
     }
 
     override fun onUnbind(intent: Intent): Boolean {
         Log.d(TAG, "Unbound by: " + packageManager.getNameForUid(Binder.getCallingUid()))
-        bindCount--
         return false
     }
 
+    @Synchronized
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
         if (startId == 3) {
@@ -214,15 +213,14 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         // 确定待启动的网络 ID
         // Intent 中指定了目标网络，直接使用此 ID
         networkId = intent.getLongExtra(ZT_NETWORK_ID, 0)
+        tunTapAdapter = TunTapAdapter(this, networkId)
         // 检查当前的网络设置项
-        val useCellularData = read<Boolean>(
-            context = this, dataType = FileUtils.DataType.Boolean,
-            itemName = FileUtils.ItemName.UseCellularData, defValue = true
+        val appSetting = read(
+            context = this, dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.AppSetting, defValue = AppSetting()
         )
-        disableIPv6 = read<Boolean>(
-            context = this, dataType = FileUtils.DataType.Boolean,
-            itemName = FileUtils.ItemName.UseCellularData, defValue = false
-        )
+        val useCellularData = appSetting.useCellularData
+        disableIPv6 = appSetting.disableIpv6
         //查询当前网络连接情况
         val currentConnection = NetworkInfoUtils.getNetworkInfoCurrentConnection(this)
         if (currentConnection == CurrentConnection.CONNECTION_NONE) {
@@ -239,36 +237,34 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
             return START_NOT_STICKY
         }
         // 启动 ZT 服务
-        synchronized(this) {
-            try {
-                // 创建本地 ZT 服务 Socket，监听本地端口
-                svrSocket.setReuseAddress(true)
-                svrSocket.setSoTimeout(1000)
-                svrSocket.bind(InetSocketAddress(9994))
-                if (!protect(svrSocket)) {
-                    Log.e(TAG, "Error protecting UDP socket from feedback loop.")
-                }
-                // 创建节点对象并初始化
-                val result = node.init(
-                    dataStore, dataStore, udpCom, this,
-                    tunTapAdapter, this, null
-                )
-                if (result == ResultCode.RESULT_OK) {
-                    Log.d(TAG, "ZeroTierOne Node Initialized")
-                } else {
-                    Log.e(TAG, "Error starting ZT1 Node: $result")
-                    return START_NOT_STICKY
-                }
-                udpCom.setNode(node)
-                tunTapAdapter.setNode(node)
-                // 启动 UDP 消息处理线程
-                udpThread.start()
-                // 创建并启动 VPN 服务线程
-                vpnThread.start()
-            } catch (e: Exception) {
-                Log.e(TAG, e.toString())
+        try {
+            // 创建本地 ZT 服务 Socket，监听本地端口
+            svrSocket.setReuseAddress(true)
+            svrSocket.setSoTimeout(1000)
+            svrSocket.bind(InetSocketAddress(9994))
+            if (!protect(svrSocket)) {
+                Log.e(TAG, "Error protecting UDP socket from feedback loop.")
+            }
+            // 创建节点对象并初始化
+            val result = node.init(
+                dataStore, dataStore, udpCom, this,
+                tunTapAdapter, this, null
+            )
+            if (result == ResultCode.RESULT_OK) {
+                Log.d(TAG, "ZeroTierOne Node Initialized")
+            } else {
+                Log.e(TAG, "Error starting ZT1 Node: $result")
                 return START_NOT_STICKY
             }
+            udpCom.setNode(node)
+            tunTapAdapter.setNode(node)
+            // 启动 UDP 消息处理线程
+            udpThread.start()
+            // 启动 VPN 服务线程
+            vpnThread.start()
+        } catch (e: Exception) {
+            Log.e(TAG, e.toString())
+            return START_NOT_STICKY
         }
         node.join(networkId)
         return START_STICKY
@@ -290,6 +286,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
 
     //VPN Tread 入口函数
     override fun run() {
+        val TAG = "VPN Thread"
         Log.d(TAG, "ZeroTierOne Service Started")
         Log.d(TAG, "This Node Address: " + addressToString(node.address()))
         while (!Thread.interrupted()) {
@@ -304,14 +301,14 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
                     synchronized(this) { nextBackgroundTaskDeadline = newDeadline[0] }
                     if (taskResult != ResultCode.RESULT_OK) {
                         Log.e(TAG, "Error on processBackgroundTasks: $taskResult")
-                        shutdown()
+                        stopZeroTier()
                     }
                 }
                 Thread.sleep(if (cmp > 0) taskDeadline - currentTime else 100)
             } catch (ignored: InterruptedException) {
                 break
             } catch (e: Exception) {
-                Log.e(TAG, e.toString(), e)
+                Log.e(TAG, e.toString())
             }
         }
         Log.d(TAG, "ZeroTierOne Service Ended")
@@ -359,15 +356,11 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         node.close()
         notificationManager?.cancel(ZT_NOTIFICATION_TAG)
         if (!stopSelfResult(startID)) {
-            Log.e(TAG, "stopSelfResult() failed!")
+            Log.e(TAG, "stopSelfResult: failed!")
         }
+        onStopZeroTier()
     }
 
-    // 外层开关，主动关闭服务
-    fun shutdown() {
-        stopZeroTier()
-        stopSelf(startID)
-    }
 
     override fun onEvent(event: Event) {
         Log.d(TAG, "Event: $event")
@@ -398,6 +391,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
                 VirtualNetworkConfigOperation.VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE -> {
                     Log.i(TAG, "Network Config Update!")
                     updateTunnelConfig(config)
+                    onStartZeroTier()
                 }
 
                 VirtualNetworkConfigOperation.VIRTUAL_NETWORK_CONFIG_OPERATION_DOWN, VirtualNetworkConfigOperation.VIRTUAL_NETWORK_CONFIG_OPERATION_DESTROY -> {
@@ -414,12 +408,12 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
     fun updateTunnelConfig(
         virtualNetworkConfig: VirtualNetworkConfig
     ): Boolean {
-        val userNetworkConfig = read<List<UserNetworkConfig>?>(
+        val userNetworkConfig = read<List<UserNetworkConfig>>(
             context = this,
             itemName = FileUtils.ItemName.NetworkConfig,
-            defValue = null
-        )?.first {
-            it.networkId == networkId.toString()
+            defValue = listOf()
+        ).first {
+            it.networkId == networkId.toULong().toString(16)
         }
         // 重启 TUN TAP
         if (tunTapAdapter.isRunning) {
@@ -459,6 +453,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
                 )
             )
             val rawAddress = vpnAddress.address.address
+            //ipv4情况
             if (!disableIPv6 || vpnAddress.address !is Inet6Address) {
                 val address = vpnAddress.address
                 val port = vpnAddress.port
@@ -467,7 +462,6 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
                     Log.e(TAG, "NULL route calculated!")
                     continue
                 }
-
                 // 计算 VPN 地址相关的组播 MAC 与 ADI
                 var multicastGroup: Long
                 var multicastAdi: Long
@@ -495,10 +489,10 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
 
                 // 订阅组播并添加至 TUN TAP 路由
                 val result = node.multicastSubscribe(networkId, multicastGroup, multicastAdi)
-                if (result != ResultCode.RESULT_OK) {
-                    Log.e(TAG, "Error joining multicast group")
-                } else {
+                if (result == ResultCode.RESULT_OK) {
                     Log.d(TAG, "Joined multicast group")
+                } else {
+                    Log.e(TAG, "Error joining multicast group")
                 }
                 builder.addAddress(address, port)
                 builder.addRoute(route, port)
@@ -540,9 +534,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
             builder.setMetered(false)
         }
 
-        userNetworkConfig?.let {
-            addDNSServers(builder, it)
-        }
+        addDNSServers(builder, userNetworkConfig)
 
         // 配置 MTU
         var mtu = virtualNetworkConfig.mtu
@@ -603,8 +595,13 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
             .setOngoing(true)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(getString(R.string.notification_title_connected))
-            .setContentText(getString(R.string.notification_text_connected, networkId.toString()))
-            .setColor(ContextCompat.getColor(applicationContext, R.color.zerotier_orange))
+            .setContentText(
+                getString(
+                    R.string.notification_text_connected,
+                    networkId.toULong().toString(16)
+                )
+            ).setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setColor(ContextCompat.getColor(applicationContext, R.color.notifyIconColor))
             .setContentIntent(pendingIntent).build()
         notificationManager?.notify(ZT_NOTIFICATION_TAG, notification)
         Log.i(TAG, "ZeroTier One Connected")
@@ -622,8 +619,8 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
     }
 
     private fun addDNSServers(builder: Builder, userNetworkConfig: UserNetworkConfig) {
-        val virtualNetworkConfig = node.networkConfig(userNetworkConfig.networkId.toLong())
-
+        val virtualNetworkConfig =
+            node.networkConfig(BigInteger(userNetworkConfig.networkId, 16).toLong())
         when (userNetworkConfig.dnsMode) {
             DNSMode.NETWORK_DNS -> {
                 if (virtualNetworkConfig!!.dns == null) {
@@ -657,18 +654,23 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         }
     }
 
+    fun setCallBack(onStartZeroTier: () -> Unit = {}, onStopZeroTier: () -> Unit = {}) {
+        this.onStartZeroTier = onStartZeroTier
+        this.onStopZeroTier = onStopZeroTier
+    }
+
     inner class ZeroTierBinder : Binder() {
         val service: ZeroTierOneService
             get() = this@ZeroTierOneService
     }
 
     companion object {
+        private const val TAG = "ZT_Service"
         const val MSG_JOIN_NETWORK = 1
         const val MSG_LEAVE_NETWORK = 2
         const val ZT_NETWORK_ID = "com.zerotier.one.network_id"
         const val ZT_USE_DEFAULT_ROUTE = "com.zerotier.one.use_default_route"
         private val DISALLOWED_APPS = arrayOf("com.android.vending")
-        private const val TAG = "ZT_Service"
         private const val ZT_NOTIFICATION_TAG = 5919812
     }
 }

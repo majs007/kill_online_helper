@@ -25,10 +25,12 @@ import kill.online.helper.zeroTier.service.ZeroTierOneService
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.math.BigInteger
 
 @SuppressLint("StaticFieldLeak")
 class ZeroTierViewModel : ViewModel() {
     private val TAG = "ZeroTierViewModel"
+    val isZTRunning = mutableStateOf(false)
     private lateinit var ztService: ZeroTierOneService
     private var isBound: Boolean = false
     private val ztConnection: ServiceConnection = object : ServiceConnection {
@@ -36,10 +38,15 @@ class ZeroTierViewModel : ViewModel() {
             this@ZeroTierViewModel.ztService =
                 (iBinder as ZeroTierOneService.ZeroTierBinder).service
             isBound = true
+            setGamePacketCallBack()
+            ztService.setCallBack(onStartZeroTier = { isZTRunning.value = true },
+                onStopZeroTier = { isZTRunning.value = false })
+            Log.i(TAG, "onServiceConnected: succeed to bind ZeroTierOneService")
         }
 
         override fun onServiceDisconnected(componentName: ComponentName) {
             this@ZeroTierViewModel.isBound = false
+            Log.i(TAG, "onServiceDisconnected: succeed to unbind ZeroTierOneService")
         }
     }
 
@@ -48,18 +55,19 @@ class ZeroTierViewModel : ViewModel() {
     private lateinit var appSetting: AppSetting
 
     val members = mutableStateOf(listOf<Member>())
-    val isZTRunning = mutableStateOf(false)
 
-    fun startZeroTier(context: Context, networkId: Long = getLastActivatedNetworkId().toLong()) {
-        //加载配置
-        loadZTConfig(context)
+
+    fun startZeroTier(context: Context) {
+        val networkId: Long = BigInteger(getLastActivatedNetworkId(), 16).toLong()
         //初始化 VPN 授权
         val vpnIntent = VpnService.prepare(context)
         if (vpnIntent != null) {
             // 打开系统设置界面
             startActivityForResult(context as Activity, vpnIntent, 0, null)
+            Log.i(TAG, "Intent is not NULL.  request to be approved.")
+        } else {
+            Log.i(TAG, "Intent is NULL.  Already approved.")
         }
-        Log.i(TAG, "Intent is NULL.  Already approved.")
         val ztIntent = Intent(
             context,
             ZeroTierOneService::class.java
@@ -72,7 +80,6 @@ class ZeroTierViewModel : ViewModel() {
         )
         //启动服务
         context.startService(ztIntent)
-        setGamePacketCallBack()
     }
 
     fun stopZeroTier(context: Context) {
@@ -118,7 +125,7 @@ class ZeroTierViewModel : ViewModel() {
 
     }
 
-    private fun loadZTConfig(context: Context) {
+    fun loadZTConfig(context: Context) {
         ztNetworkConfig = FileUtils.read(
             context = context,
             dataType = FileUtils.DataType.Json,
@@ -168,7 +175,48 @@ class ZeroTierViewModel : ViewModel() {
         Log.i(TAG, "saveZTConfig: succeed to save ztNetworkConfig ztNetwork appSetting")
     }
 
-    fun updateNetworkStatus(
+    fun initZTConfig(context: Context) {
+        if (!FileUtils.isExist(
+                context = context,
+                itemName = FileUtils.ItemName.NetworkConfig
+            )
+        ) {
+            FileUtils.write(
+                context = context,
+                dataType = FileUtils.DataType.Json,
+                itemName = FileUtils.ItemName.NetworkConfig,
+                content = listOf(UserNetworkConfig("a09acf02339ffab1")),
+            )
+        }
+        if (!FileUtils.isExist(
+                context = context,
+                itemName = FileUtils.ItemName.Network
+            )
+        ) {
+            FileUtils.write(
+                context = context,
+                dataType = FileUtils.DataType.Json,
+                itemName = FileUtils.ItemName.Network,
+                content = listOf(UserNetwork("a09acf02339ffab1", lastActivated = true)),
+            )
+        }
+        if (!FileUtils.isExist(
+                context = context,
+                itemName = FileUtils.ItemName.AppSetting
+            )
+        ) {
+            FileUtils.write(
+                context = context,
+                dataType = FileUtils.DataType.Json,
+                itemName = FileUtils.ItemName.AppSetting,
+                content = AppSetting()
+            )
+        }
+
+        Log.i(TAG, "initZTConfig: succeed to init ztNetworkConfig ztNetwork appSetting")
+    }
+
+    private fun updateNetworkStatus(
         context: Context,
         networkId: String,
         networkName: String? = null,
@@ -183,27 +231,45 @@ class ZeroTierViewModel : ViewModel() {
             lastActivated?.run { net.lastActivated = lastActivated }
 
         }
+        Log.i(TAG, "updateNetworkStatus: start to saveZTConfig")
         saveZTConfig(context)
     }
 
     fun getMembers(networkID: String) {
-        NetworkRepository.zeroTier.getMembers(networkID).enqueue(object : Callback<List<Member>> {
-            override fun onResponse(call: Call<List<Member>>, response: Response<List<Member>>) {
-                response.body()?.let { it ->
-                    members.value = it.toMutableList()
-                }
-            }
+        try {
+            NetworkRepository.ztClient.getMembers(networkID)
+                .enqueue(object : Callback<List<Member>> {
+                    override fun onResponse(
+                        call: Call<List<Member>>,
+                        response: Response<List<Member>>
+                    ) {
+                        try {
+                            response.body()?.let { it ->
+                                members.value = it.filter {
+                                    it.config.ipAssignments.isNotEmpty()
+                                }.sortedBy { -it.lastSeen }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
 
-            override fun onFailure(call: Call<List<Member>>, t: Throwable) {
-                t.printStackTrace()
-                println("request wrong")
-            }
-        })
+                    }
+
+                    override fun onFailure(call: Call<List<Member>>, t: Throwable) {
+                        t.printStackTrace()
+                        Log.i(TAG, "onFailure: request wrong")
+                    }
+                })
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
+
+
     }
 
     fun modifyMember(networkID: String, memberID: String, name: String, description: String) {
         val modifyMember = ModifyMember(name = name, description = description)
-        NetworkRepository.zeroTier.modifyMember(networkID, memberID, modifyMember)
+        NetworkRepository.ztClient.modifyMember(networkID, memberID, modifyMember)
             .enqueue(object : Callback<Member> {
                 override fun onResponse(call: Call<Member>, response: Response<Member>) {
                     response.body()?.let {

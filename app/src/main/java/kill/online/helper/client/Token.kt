@@ -1,3 +1,3 @@
 package kill.online.helper.client
 
-const val token = ""
+const val token = "token "

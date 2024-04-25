@@ -122,7 +122,7 @@ fun MessageCard(msg: kill.online.helper.data.Message) {
         Spacer(modifier = Modifier.width(8.dp))
         Column {
             Text(
-                text = msg.playerNickname,
+                text = msg.playerName,
                 color = Color.White,
                 style = MaterialTheme.typography.titleSmall
             )
@@ -138,7 +138,7 @@ fun MessageCard(msg: kill.online.helper.data.Message) {
                     .focusable(true)
             ) {
                 Text(
-                    text = msg.body,
+                    text = msg.msg,
                     modifier = Modifier.padding(all = 4.dp),
                     maxLines = 10,
                     style = MaterialTheme.typography.bodyMedium

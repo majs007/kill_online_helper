@@ -1,16 +1,27 @@
 package kill.online.helper.utils
 
 import android.content.Context
+import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 object FileUtils {
+    const val TAG = "FileUtils"
+
     enum class DataType { Json, String, Int, Boolean }
     sealed class ItemName(val name: String) {
         data object Network : ItemName("network")
         data object NetworkConfig : ItemName("networkConfig")
         data object AppSetting : ItemName("appSetting")
-        data object UseCellularData : ItemName("useCellularData")
-        data object DisableIpv6 : ItemName("DisableIpv6")
+    }
+
+    fun isExist(
+        fileName: String = "zeroTier",
+        context: Context,
+        itemName: ItemName
+    ): Boolean {
+        val sharedPreferences = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
+        return sharedPreferences.contains(itemName.name)
     }
 
     inline fun <reified T> read(
@@ -24,9 +35,11 @@ object FileUtils {
         val gson = Gson()
         val sharedPreferences = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
         val strContent = sharedPreferences.getString(itemName.name, null) ?: return defValue
+        Log.i(TAG, "read: strContent = $strContent")
         return when (dataType) {
             DataType.Json -> {
-                val content: T = gson.fromJson(strContent, T::class.java)
+                val type = object : TypeToken<T>() {}.type
+                val content: T = gson.fromJson(strContent, type)
                 callback(content)
                 content
             }
@@ -55,7 +68,9 @@ object FileUtils {
         context: Context,
         dataType: DataType = DataType.Json,
         itemName: ItemName,
+        prefix: String = "",
         content: T,
+        suffix: String = "",
         callback: (strContent: String) -> Unit = {}
     ) {
         val gson = Gson()
@@ -69,6 +84,7 @@ object FileUtils {
                 content.toString()
             }
         }
+        Log.i(TAG, "write: strContent = $strContent")
         editor.putString(itemName.name, strContent)
         editor.apply()
         callback(strContent)

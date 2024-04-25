@@ -24,12 +24,17 @@ import kotlin.experimental.and
 // TODO: clear up
 class TunTapAdapter(private val ztService: ZeroTierOneService, private val networkId: Long) :
     VirtualNetworkFrameListener {
+    private var node: Node? = null
     private val routeMap = HashMap<Route, Long>()
     private var arpTable: ARPTable? = ARPTable()
-    private var `in`: FileInputStream? = null
     private var ndpTable: NDPTable? = NDPTable()
-    private var node: Node? = null
+    private var `in`: FileInputStream? = null
     private var out: FileOutputStream? = null
+    val isRunning: Boolean
+        get() {
+            val thread = receiveThread ?: return false
+            return thread.isAlive
+        }
     private var receiveThread: Thread? = null
     private var vpnSocket: ParcelFileDescriptor? = null
     private var onHandleIPPacket: (packetData: ByteArray) -> ByteArray = { it }
@@ -274,7 +279,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
             destIP = gateway
         }
         if (localV4Address == null) {
-            Log.e(TAG, "Couldn't determine local address")
+            Log.e(TAG, "handleIPv6Packet: Couldn't determine local address")
             return
         }
         val localMac: Long = virtualNetworkConfig.mac
@@ -390,11 +395,6 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
         return packetData!![6].toInt() == 58 && packetData[40].toInt() == -120
     }
 
-    val isRunning: Boolean
-        get() {
-            val thread = receiveThread ?: return false
-            return thread.isAlive
-        }
 
     /**
      * 响应并处理 ZT 网络发送至本节点的以太网帧

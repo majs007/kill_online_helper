@@ -19,7 +19,6 @@ import com.king.ultraswiperefresh.UltraSwipeRefresh
 import com.king.ultraswiperefresh.rememberUltraSwipeRefreshState
 import kill.online.helper.ui.components.BasicItemContainer
 import kill.online.helper.viewModel.ZeroTierViewModel
-import kotlinx.coroutines.delay
 import java.util.concurrent.TimeUnit
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -31,18 +30,16 @@ fun PlayerContent(
     val ztViewModel: ZeroTierViewModel = viewModel()
     val state = rememberUltraSwipeRefreshState()
     val currentTime = remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+
     LaunchedEffect(state.isRefreshing) {
         if (state.isRefreshing) {
             ztViewModel.getMembers(ztViewModel.getLastActivatedNetworkId())
             state.isRefreshing = false
         }
     }
-    LaunchedEffect(state.isLoading) {
-        if (state.isLoading) {
-            delay(2000)
-
-            state.isLoading = false
-        }
+    LaunchedEffect(null) {
+        ztViewModel.getMembers(ztViewModel.getLastActivatedNetworkId())
     }
     UltraSwipeRefresh(
         state = state,
@@ -59,7 +56,7 @@ fun PlayerContent(
                     TimeUnit.MILLISECONDS.toDays(currentTime.longValue - item.lastSeen).toInt()
 
                 when {
-                    dayNumber == 0 && milliseconds < 5000 -> {
+                    dayNumber == 0 && milliseconds < 60 * 1000 -> {
                         BasicItemContainer(
                             icon = "🥳",
                             text = { item.name },
@@ -73,60 +70,64 @@ fun PlayerContent(
                             subText = { "状态：${dayNumber + 1}天内" })
                     }
 
-                    dayNumber == 2 -> {
+                    dayNumber == 1 -> {
                         BasicItemContainer(
                             icon = "😎",
                             text = { item.name },
-                            subText = { "状态：${dayNumber + 1}天前" })
+                            subText = { "状态：${dayNumber}天前" })
+                    }
+
+                    dayNumber == 2 -> {
+                        BasicItemContainer(
+                            icon = "😶",
+                            text = { item.name },
+                            subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 3 -> {
                         BasicItemContainer(
-                            icon = "😶",
+                            icon = "😐",
                             text = { item.name },
-                            subText = { "状态：${dayNumber + 1}天前" })
+                            subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 4 -> {
                         BasicItemContainer(
-                            icon = "😐",
+                            icon = "🤔",
                             text = { item.name },
-                            subText = { "状态：${dayNumber + 1}天前" })
+                            subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 5 -> {
                         BasicItemContainer(
-                            icon = "🤔",
+                            icon = "😕",
                             text = { item.name },
-                            subText = { "状态：${dayNumber + 1}天前" })
+                            subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 6 -> {
                         BasicItemContainer(
-                            icon = "😕",
+                            icon = "😥",
                             text = { item.name },
-                            subText = { "状态：${dayNumber + 1}天前" })
+                            subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 7 -> {
                         BasicItemContainer(
-                            icon = "😥",
-                            text = { item.name },
-                            subText = { "状态：${dayNumber + 1}天前" })
-                    }
-
-                    dayNumber == 8 -> {
-                        BasicItemContainer(
                             icon = "😖",
                             text = { item.name },
-                            subText = { "状态：${dayNumber + 1}天前" })
+                            subText = { "状态：${dayNumber}天前" })
+                    }
+
+                    dayNumber > 30 -> {
+
                     }
 
                     else -> {
                         BasicItemContainer(
                             icon = "😭",
                             text = { item.name },
-                            subText = { "状态：${dayNumber + 1}天前" })
+                            subText = { "状态：${dayNumber}天前" })
                     }
                 }
 

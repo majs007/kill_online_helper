@@ -6,6 +6,7 @@ import kill.online.helper.client.NetworkRepository
 import kill.online.helper.data.Message
 import kill.online.helper.data.MessageResponse
 import kill.online.helper.server.HttpServer
+import kill.online.helper.server.URI_MESSAGE
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -16,7 +17,7 @@ class AppViewModel : ViewModel() {
     val players = listOf("章鱼哥", "派大星", "海绵宝宝", "小蜗", "蟹老板", "神秘奇男子AAA")
 
     fun sendMessage(ip: String, msg: Message) {
-        NetworkRepository.appClient.sendMessage(ip, msg)
+        NetworkRepository.appClient.sendMessage("http://$ip/$URI_MESSAGE", msg)
             .enqueue(object : Callback<MessageResponse> {
                 override fun onResponse(
                     call: Call<MessageResponse>,

@@ -16,22 +16,33 @@ import javax.net.ssl.X509TrustManager
  */
 object NetworkRepository {
     //创建拦截器
-    private val interceptor = Interceptor { chain ->
+    private val zeroInterceptor = Interceptor { chain ->
         val request = chain.request()
         val requestBuilder = request.newBuilder()
         val url = request.url()
         val builder = url.newBuilder()
         requestBuilder.url(builder.build())
             .method(request.method(), request.body())
-            .addHeader("clientType", "IOS")
-            .addHeader("Content-Type", "application/x-www-form-urlencoded")
+            .addHeader("clientType", "android")
+            .addHeader("Content-Type", "application/json")
             .addHeader("Authorization", token)
+        chain.proceed(requestBuilder.build())
+    }
+    private val appInterceptor = Interceptor { chain ->
+        val request = chain.request()
+        val requestBuilder = request.newBuilder()
+        val url = request.url()
+        val builder = url.newBuilder()
+        requestBuilder.url(builder.build())
+            .method(request.method(), request.body())
+            .addHeader("clientType", "android")
+            .addHeader("Content-Type", "application/json")
         chain.proceed(requestBuilder.build())
     }
 
     //创建OKhttp
-    private val client: OkHttpClient.Builder = OkHttpClient.Builder()
-        .addInterceptor(interceptor)
+    private val zeroHttpClient: OkHttpClient.Builder = OkHttpClient.Builder()
+        .addInterceptor(zeroInterceptor)
         .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(5, TimeUnit.SECONDS)
@@ -44,19 +55,27 @@ object NetworkRepository {
         // 忽略 Hostname 验证
         .hostnameVerifier { _, _ -> true }
 
+    private val appHttpClient: OkHttpClient.Builder = OkHttpClient.Builder()
+        .addInterceptor(appInterceptor)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.SECONDS)
+        .writeTimeout(5, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(false)
+
 
     private val zeroRetrofit: Retrofit = Retrofit.Builder()
         .baseUrl("https://api.zerotier.com/api/v1/")
         .addConverterFactory(GsonConverterFactory.create())
-        .client(client.build())
-        .build()
-    private val appRetrofit: Retrofit = Retrofit.Builder()
-        .baseUrl("https://")
-        .addConverterFactory(GsonConverterFactory.create())
-        .client(client.build())
+        .client(zeroHttpClient.build())
         .build()
 
-    val zeroTier: ZeroTierClient = zeroRetrofit.create(ZeroTierClient::class.java)
+    private val appRetrofit: Retrofit = Retrofit.Builder()
+        .baseUrl("http://127.0.0.1/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .client(appHttpClient.build())
+        .build()
+
+    val ztClient: ZeroTierClient = zeroRetrofit.create(ZeroTierClient::class.java)
     val appClient: AppClient = appRetrofit.create(AppClient::class.java)
 
 }

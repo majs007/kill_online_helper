@@ -4,7 +4,7 @@ import kill.online.helper.zeroTier.model.type.DNSMode
 
 data class UserNetworkConfig(
     var networkId: String,
-    var routeViaZeroTier: Boolean,
-    var dnsMode: DNSMode,
-    var dnsServers: List<String>,
+    var routeViaZeroTier: Boolean = true,
+    var dnsMode: DNSMode = DNSMode.NO_DNS,
+    var dnsServers: List<String> = listOf(),
 )

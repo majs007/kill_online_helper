@@ -62,22 +62,9 @@ fun HomeContent(
     val btnText = remember(ztViewModel.isZTRunning.value) {
         mutableStateOf(if (ztViewModel.isZTRunning.value) "已启用" else "未启用")
     }
-    LaunchedEffect(ztViewModel.isZTRunning.value) {
-        if (ztViewModel.isZTRunning.value) {
-            ztViewModel.startZeroTier(context)
-            ztViewModel.updateNetworkStatus(
-                context,
-                ztViewModel.getLastActivatedNetworkId(),
-                enabled = true
-            )
-        } else {
-            ztViewModel.stopZeroTier(context)
-            ztViewModel.updateNetworkStatus(
-                context,
-                ztViewModel.getLastActivatedNetworkId(),
-                enabled = false
-            )
-        }
+    LaunchedEffect(null) {
+        ztViewModel.initZTConfig(context)
+        ztViewModel.loadZTConfig(context)
     }
     Column(
         modifier = Modifier
@@ -87,7 +74,17 @@ fun HomeContent(
     ) {
         ElevatedButton(
             colors = btnColors.value,
-            onClick = { ztViewModel.isZTRunning.value = !ztViewModel.isZTRunning.value },
+            onClick = {
+                try {
+                    if (!ztViewModel.isZTRunning.value) {
+                        ztViewModel.startZeroTier(context)
+                    } else {
+                        ztViewModel.stopZeroTier(context)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            },
             shape = RoundedCornerShape(cardRoundedCorner),
             modifier = Modifier
                 .fillMaxWidth()

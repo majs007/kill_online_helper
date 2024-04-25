@@ -19,7 +19,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // 初始化悬浮窗
         FloatingWindowFactory.setApplicationContext(applicationContext)
-
         setContent {
             killTheme {
                 val externalNavController = rememberNavController()

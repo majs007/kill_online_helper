@@ -5,7 +5,7 @@ data class ModifyMember(
     val hidden: Boolean? = null,
     val name: String,
     val description: String,
-    val config: Config = Config()
+    val config: Config? = null
 ) {
     data class Config(
         val activeBridge: Boolean? = null,

@@ -68,7 +68,7 @@ class UdpCom internal constructor(
                         )
                         if (processWirePacket != ResultCode.RESULT_OK) {
                             Log.e(TAG, "processWirePacket returned: $processWirePacket")
-                            ztService.shutdown()
+                            ztService.stopZeroTier()
                         }
                         ztService.nextBackgroundTaskDeadline = jArr[0]
                     }
