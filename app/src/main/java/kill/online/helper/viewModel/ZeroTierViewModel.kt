@@ -252,7 +252,6 @@ class ZeroTierViewModel : ViewModel() {
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
-
                     }
 
                     override fun onFailure(call: Call<List<Member>>, t: Throwable) {

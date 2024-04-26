@@ -26,3 +26,5 @@ enum class MsgSuffix {
 enum class Result {
     OK, FAILED
 }
+
+data class RoomRule(var mode: String, var rule: String, var checked: Boolean = false)

@@ -20,6 +20,7 @@ val floatingButtonPadding = 85.dp
 
 //文本
 val textPadding = 10.dp
+val doubleTextPadding = 10.dp
 val textLineHeight = 30.sp
 
 //悬浮窗
@@ -33,3 +34,6 @@ const val floatingWindowItemAlpha = 0.3f
 const val messageAlpha = 0.3f
 val topAppBarActionPadding = 5.dp
 val FloatingWindowPadding = 10.dp
+
+//ime
+val imePadding = 230.dp

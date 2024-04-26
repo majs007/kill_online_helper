@@ -2,6 +2,7 @@ package kill.online.helper.ui.page
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,34 +26,40 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kill.online.helper.ui.theme.appPadding
-import kill.online.helper.ui.theme.quadrupleSpacePadding
+import kill.online.helper.ui.theme.doubleSpacePadding
+import kill.online.helper.ui.theme.imePadding
 import kill.online.helper.ui.theme.textPadding
+import kill.online.helper.viewModel.AppViewModel
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun RuleConfigSheet(
     isShow: Boolean,
     onDismissRequest: () -> Unit,
-    sheetState: SheetState = rememberModalBottomSheetState()
+    clickedIndex: Int,
+    sheetState: SheetState = rememberModalBottomSheetState(),
+    appViewModel: AppViewModel = viewModel()
 ) {
-    val gameMode = mutableListOf(
-        "标准",
-        "三英",
-        "武皇",
-    )
-    var selectedID by remember { mutableIntStateOf(0) }
-    var roomDescriptionText by remember { mutableStateOf("") }
-
-
+    val context = LocalContext.current
+    val gameMode = remember { listOf("标准", "三英", "武皇") }
+    var checkedIndex by remember { mutableIntStateOf(0) }
+    var rule by remember { mutableStateOf("") }
     if (isShow) {
-        ModalBottomSheet(
-            onDismissRequest = onDismissRequest,
-            sheetState = sheetState,
-        ) {
-            // Sheet content
+        checkedIndex = gameMode.indexOf(appViewModel.roomRule.value[clickedIndex].mode)
+        rule = appViewModel.roomRule.value[clickedIndex].rule
+    } else {
+        checkedIndex = 0
+        rule = ""
+    }
 
+    if (isShow || appViewModel.isAddRule.value) {
+        ModalBottomSheet(
+            onDismissRequest = onDismissRequest, sheetState = sheetState, modifier = Modifier
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -60,47 +67,54 @@ fun RuleConfigSheet(
 //                    .background(Color.Cyan)
             ) {
 
-                Text(text = "游戏模式：${gameMode[selectedID]}")
+                Text(text = "游戏模式：${gameMode[checkedIndex]}")
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier
-                        .fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth()
 //                        .background(Color.Blue)
                 ) {
                     gameMode.forEachIndexed { index, s ->
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
+                            verticalAlignment = Alignment.CenterVertically, modifier = Modifier
 //                                .background(Color.Red)
                         ) {
                             Text(text = s)
                             RadioButton(
-                                selected = selectedID == index,
-                                onClick = { selectedID = index },
+                                selected = index == checkedIndex,
+                                onClick = { checkedIndex = index },
                             )
                         }
-
                     }
                 }
 
                 Text(text = "房间描述：", modifier = Modifier.padding(bottom = textPadding))
                 TextField(
-                    value = roomDescriptionText,
-                    colors = TextFieldDefaults.colors(unfocusedContainerColor = Color.Transparent),
-                    onValueChange = { newText -> roomDescriptionText = newText },
-                    placeholder = { Text(text = "素将局，禁点将") },
+                    value = rule,
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedContainerColor = Color.Transparent
+                    ),
+                    onValueChange = { newText -> rule = newText },
+                    placeholder = { Text(text = "例：素将局，禁点将") },
+                    modifier = Modifier.fillMaxWidth()
                 )
                 ElevatedButton(
-                    onClick = { /*TODO*/ },
+                    onClick = {
+                        if (!isShow) appViewModel.addRoomRule(gameMode[checkedIndex], rule, context)
+                        else appViewModel.updateRoomRule(clickedIndex, context) {
+                            it.copy(mode = gameMode[checkedIndex], rule = rule)
+                        }
+                        onDismissRequest()
+                    },
                     modifier = Modifier
-                        .padding(top = textPadding)
+                        .padding(top = doubleSpacePadding)
                         .fillMaxWidth(0.5f)
                         .align(Alignment.CenterHorizontally)
                 ) {
                     Text(text = "完成")
                 }
             }
-            Spacer(modifier = Modifier.height(quadrupleSpacePadding))
+            Spacer(modifier = Modifier.height(imePadding))
         }
     }
 

@@ -10,10 +10,6 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -88,6 +84,7 @@ fun Navigation(appNavController: NavHostController) {
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ScaffoldNavigation(
     appNavController: NavHostController, scaffoldNavController: NavHostController
@@ -99,7 +96,6 @@ fun ScaffoldNavigation(
     val playerListState = rememberLazyListState()
     val ruleListState = rememberLazyListState()
     val settingListState = rememberLazyListState()
-    var checkedIndex by remember { mutableIntStateOf(-1) }
     NavHost(
         navController = scaffoldNavController,
         startDestination = Route.home.value,
@@ -135,10 +131,7 @@ fun ScaffoldNavigation(
             CompositionLocalProvider(
                 LocalViewModelStoreOwner provides viewModelStoreOwner
             ) {
-                RuleContent(appNavController, scaffoldNavController, ruleListState, checkedIndex,
-                    onCheckedChange = {
-                        checkedIndex = it
-                    })
+                RuleContent(appNavController, scaffoldNavController, ruleListState)
             }
         }
         composable(Route.setting.value) {

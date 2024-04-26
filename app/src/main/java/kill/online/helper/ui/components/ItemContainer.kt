@@ -164,7 +164,8 @@ internal fun SwitchItemContainer(
     iconEnabled: Boolean = false,
     text: @Composable () -> String,
     subText: (@Composable () -> String)? = null,
-    enable: Boolean = true
+    enable: Boolean = true,
+    onClick: () -> Unit = {},
 ) {
     BasicItemContainer(
         icon = icon,
@@ -172,7 +173,7 @@ internal fun SwitchItemContainer(
         iconEnabled = iconEnabled,
         text = text,
         subText = subText,
-        onClick = onCheckedChange,
+        onClick = onClick,
         padding = PaddingValues(vertical = 8.dp),
         tailContent = {
             Switch(

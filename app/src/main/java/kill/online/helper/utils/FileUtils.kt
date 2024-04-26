@@ -13,6 +13,7 @@ object FileUtils {
         data object Network : ItemName("network")
         data object NetworkConfig : ItemName("networkConfig")
         data object AppSetting : ItemName("appSetting")
+        data object RoomRule : ItemName("roomRule")
     }
 
     fun isExist(

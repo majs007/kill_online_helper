@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -49,12 +50,13 @@ import kill.online.helper.ui.theme.floatingBallAlpha
 import kill.online.helper.ui.window.FloatingWindowFactory
 import kill.online.helper.ui.window.dragFloatingWindow
 import kill.online.helper.utils.simulateHome
+import kill.online.helper.viewModel.AppViewModel
 
 
 @RequiresApi(Build.VERSION_CODES.P)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun AppScreen(appNavController: NavHostController) {
+fun AppScreen(appNavController: NavHostController, appViewModel: AppViewModel = viewModel()) {
 
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -197,7 +199,9 @@ fun AppScreen(appNavController: NavHostController) {
                 }
 
                 Route.rule.value -> {
-                    FloatingActionButton(onClick = { /*TODO*/ }) {
+                    FloatingActionButton(onClick = {
+                        appViewModel.isAddRule.value = true
+                    }) {
                         Icon(Icons.Filled.Add, contentDescription = null)
                     }
                 }
