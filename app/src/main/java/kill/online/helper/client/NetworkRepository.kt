@@ -43,9 +43,9 @@ object NetworkRepository {
     //创建OKhttp
     private val zeroHttpClient: OkHttpClient.Builder = OkHttpClient.Builder()
         .addInterceptor(zeroInterceptor)
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.SECONDS)
-        .writeTimeout(5, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
         .retryOnConnectionFailure(false)
         // 添加信任所有证书的 SSL Socket Factory
         .sslSocketFactory(
@@ -57,9 +57,9 @@ object NetworkRepository {
 
     private val appHttpClient: OkHttpClient.Builder = OkHttpClient.Builder()
         .addInterceptor(appInterceptor)
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.SECONDS)
-        .writeTimeout(5, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
         .retryOnConnectionFailure(false)
 
 

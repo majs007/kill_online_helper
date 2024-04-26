@@ -9,7 +9,8 @@ import kill.online.helper.data.Message
 import kill.online.helper.data.MessageResponse
 import kill.online.helper.data.RoomRule
 import kill.online.helper.server.HttpServer
-import kill.online.helper.server.URI_MESSAGE
+import kill.online.helper.server.HttpServer.Companion.HTTP_PORT_SERVER
+import kill.online.helper.server.HttpServer.Companion.URI_MESSAGE
 import kill.online.helper.utils.FileUtils
 import retrofit2.Call
 import retrofit2.Callback
@@ -20,8 +21,8 @@ class AppViewModel : ViewModel() {
     private val httpServer = HttpServer()
     val players = listOf("章鱼哥", "派大星", "海绵宝宝", "小蜗", "蟹老板", "神秘奇男子AAA")
     var isAddRule = mutableStateOf(false)
-
     val roomRule = mutableStateOf(listOf<RoomRule>())
+    val messages = mutableStateOf(listOf<Message>())
 
     fun getCheckedRuleIndex(): Int {
         return roomRule.value.indexOfFirst { it.checked }
@@ -69,7 +70,10 @@ class AppViewModel : ViewModel() {
     }
 
     fun sendMessage(ip: String, msg: Message) {
-        NetworkRepository.appClient.sendMessage("http://$ip/$URI_MESSAGE", msg)
+        NetworkRepository.appClient.sendMessage(
+            "http://$ip:${HTTP_PORT_SERVER}${URI_MESSAGE}",
+            msg
+        )
             .enqueue(object : Callback<MessageResponse> {
                 override fun onResponse(
                     call: Call<MessageResponse>,
@@ -88,7 +92,9 @@ class AppViewModel : ViewModel() {
 
     fun startHttpServer() {
         httpServer.onReceivedMessage {
-
+            val newMessages = messages.value.toMutableList()
+            newMessages.add(it)
+            messages.value = newMessages.toList()
             MessageResponse()
         }
         httpServer.start()

@@ -61,7 +61,6 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
     private var notificationManager: NotificationManager? = null
     private var udpCom: UdpCom = UdpCom(this, svrSocket)
     private var udpThread: Thread = Thread(udpCom, "UDP Communication Thread")
-
     private lateinit var tunTapAdapter: TunTapAdapter
     private var vpnThread: Thread = Thread(this, "VPN Thread")
     private var v4MulticastScanner: Thread = object : Thread() {
@@ -134,7 +133,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         }
     }
     private var v6MulticastScanner: Thread = object : Thread() {
-        var subscriptions: List<String> = ArrayList()
+        var subscriptions: List<String> = listOf()
         override fun run() {
             Log.d(TAG, "IPv6 Multicast Scanner Thread Started.")
             while (!isInterrupted) {
@@ -188,6 +187,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
             Log.d(TAG, "IPv6 Multicast Scanner Thread Ended.")
         }
     }
+    private var onHandleIPPacket: (packetData: ByteArray) -> ByteArray = { it }
     private var onStartZeroTier: () -> Unit = {}
     private var onStopZeroTier: () -> Unit = {}
 
@@ -371,7 +371,8 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
     }
 
     fun setOnHandleIPPacket(lambda: (packetData: ByteArray) -> ByteArray) {
-        this.tunTapAdapter.setOnHandleIPPacket(lambda)
+        Log.i(TAG, "setOnHandleIPPacket")
+        this.onHandleIPPacket = lambda
     }
 
     override fun onNetworkConfigurationUpdated(
@@ -546,6 +547,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         builder.setMtu(mtu)
         builder.setSession(Constants.VPN_SESSION_NAME)
 
+
         // 设置部分 APP 不经过 VPN
         if (!isRouteViaZeroTier && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             for (app in DISALLOWED_APPS) {
@@ -563,6 +565,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         outputStream = FileOutputStream(vpnSocket?.fileDescriptor)
         tunTapAdapter.setVpnSocket(vpnSocket)
         tunTapAdapter.setFileStreams(inputStream, outputStream)
+        tunTapAdapter.setOnHandleIPPacket(onHandleIPPacket)
         tunTapAdapter.startThreads()
         // 状态栏提示
         if (notificationManager == null) {

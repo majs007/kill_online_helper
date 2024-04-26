@@ -38,6 +38,7 @@ import kill.online.helper.ui.theme.appPadding
 import kill.online.helper.ui.theme.cardRoundedCorner
 import kill.online.helper.ui.theme.floatingButtonPadding
 import kill.online.helper.ui.theme.textPadding
+import kill.online.helper.viewModel.AppViewModel
 import kill.online.helper.viewModel.ZeroTierViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,9 +47,10 @@ fun HomeContent(
     appNavController: NavHostController,
     scaffoldNavController: NavHostController,
     roomListState: LazyListState = rememberLazyListState(),
+    ztViewModel: ZeroTierViewModel = viewModel(),
+    appViewModel: AppViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val ztViewModel: ZeroTierViewModel = viewModel()
     var isRoomInfoSheetShow by remember { mutableStateOf(false) }
     // 根据按钮状态获取对应的按钮颜色
     val runningColor = ButtonDefaults.elevatedButtonColors().copy(
@@ -78,8 +80,11 @@ fun HomeContent(
                 try {
                     if (!ztViewModel.isZTRunning.value) {
                         ztViewModel.startZeroTier(context)
+                        appViewModel.startHttpServer()
+
                     } else {
                         ztViewModel.stopZeroTier(context)
+                        appViewModel.stopHttpServer()
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()

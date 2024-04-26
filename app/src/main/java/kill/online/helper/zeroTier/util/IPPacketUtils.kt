@@ -63,6 +63,12 @@ object IPPacketUtils {
         return (bArr[0].toInt() shr 4).toByte()
     }
 
+    fun getUDPData(ipv4: ByteArray): ByteArray {
+        val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
+        val udpHeaderLength = 8
+        return ipv4.slice(ipHeaderLength + udpHeaderLength until ipv4.size).toByteArray()
+    }
+
     fun calculateChecksum(bArr: ByteArray, j: Long, i: Int, i2: Int): Long {
         var j = j
         var i = i
@@ -106,12 +112,20 @@ object IPPacketUtils {
         return (sum.inv() and 0xFFFF).toUShort()
     }
 
-    fun setIPV4CheckSum(ipv4Header: ByteArray) {
+    fun setIPV4CheckSum(ipv4: ByteArray) {
+        val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
+        println("ipHeaderLength: $ipHeaderLength")
+        val ipv4Header = ipv4.slice(0 until ipHeaderLength).toByteArray()
         ipv4Header[10] = 0
         ipv4Header[11] = 0
         val checkSum = calculateChecksum(ipv4Header).toInt()
+        ipv4[10] = (checkSum shr 8).toByte()
+        ipv4[11] = checkSum.toByte()
+        println("ipv4 check sum: ${ipv4[10]},${ipv4[11]}")
         ipv4Header[10] = (checkSum shr 8).toByte()
         ipv4Header[11] = checkSum.toByte()
+        println("ipv4 check sum: ${ipv4[10]},${ipv4[11]}")
+
     }
 
     fun setTCPCheckSum(ipv4: ByteArray) {
@@ -126,12 +140,49 @@ object IPPacketUtils {
         fakeHeader[10] = ((ipv4.size - 20) shr 8).toByte()
         fakeHeader[11] = (ipv4.size - 20).toByte()
 
-        val tcp = ipv4.drop(20).toByteArray()
+        val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
+        val tcp = ipv4.drop(ipHeaderLength).toByteArray()
         tcp[16] = 0
         tcp[17] = 0
         val checkSum = calculateChecksum(fakeHeader + tcp).toInt()
         ipv4[36] = (checkSum shr 8).toByte()
         ipv4[37] = checkSum.toByte()
+    }
+
+    fun setUDPCheckSum(ipv4: ByteArray) {
+        val fakeHeader = ByteArray(12)
+        val sourceAddress = ipv4.slice(12..15).toByteArray()
+        val destinationAddress = ipv4.slice(16..19).toByteArray()
+
+        sourceAddress.copyInto(fakeHeader, 0)
+        destinationAddress.copyInto(fakeHeader, 4)
+        fakeHeader[8] = 0
+        fakeHeader[9] = 17
+        fakeHeader[10] = ((ipv4.size - 20) shr 8).toByte()
+        fakeHeader[11] = (ipv4.size - 20).toByte()
+
+        val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
+        val udp = ipv4.drop(ipHeaderLength).toByteArray()
+        udp[6] = 0
+        udp[7] = 0
+        val checkSum = calculateChecksum(fakeHeader + udp).toInt()
+        println("ipv4 check sum: ${ipv4[ipHeaderLength + 6]},${ipv4[ipHeaderLength + 7]}")
+        ipv4[ipHeaderLength + 6] = (checkSum shr 8).toByte()
+        ipv4[ipHeaderLength + 7] = checkSum.toByte()
+        println("ipv4 check sum: ${ipv4[ipHeaderLength + 6]},${ipv4[ipHeaderLength + 7]}")
+    }
+
+    fun handleUDPData(ipv4: ByteArray, lambda: (udpData: ByteArray) -> ByteArray): ByteArray {
+        val oldUdpData = IPPacketUtils.getUDPData(ipv4)
+        val newUdpData = lambda(oldUdpData)
+        val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
+
+        val header = ipv4.slice(0 until ipHeaderLength + 8).toByteArray()
+
+        val newIpv4 = header + newUdpData
+        setUDPCheckSum(newIpv4)
+        setUDPCheckSum(newIpv4)
+        return newIpv4
     }
 
 }

@@ -22,6 +22,10 @@ import kill.online.helper.utils.getPacketType
 import kill.online.helper.zeroTier.model.UserNetwork
 import kill.online.helper.zeroTier.model.UserNetworkConfig
 import kill.online.helper.zeroTier.service.ZeroTierOneService
+import kill.online.helper.zeroTier.util.IPPacketUtils.getDestIP
+import kill.online.helper.zeroTier.util.IPPacketUtils.getIPVersion
+import kill.online.helper.zeroTier.util.IPPacketUtils.getSourceIP
+import kill.online.helper.zeroTier.util.IPPacketUtils.getUDPData
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -69,14 +73,12 @@ class ZeroTierViewModel : ViewModel() {
             Log.i(TAG, "Intent is NULL.  Already approved.")
         }
         val ztIntent = Intent(
-            context,
-            ZeroTierOneService::class.java
+            context, ZeroTierOneService::class.java
         )
         ztIntent.putExtra(ZeroTierOneService.ZT_NETWORK_ID, networkId)
         //绑定服务
         context.bindService(
-            ztIntent, this.ztConnection,
-            Context.BIND_NOT_FOREGROUND or Context.BIND_DEBUG_UNBIND
+            ztIntent, this.ztConnection, Context.BIND_NOT_FOREGROUND or Context.BIND_DEBUG_UNBIND
         )
         //启动服务
         context.startService(ztIntent)
@@ -93,7 +95,19 @@ class ZeroTierViewModel : ViewModel() {
 
     private fun setGamePacketCallBack() {
         ztService.setOnHandleIPPacket { ipv4 ->
-            val gamePacketType = getPacketType(ipv4.drop(40).toByteArray())
+            val hexIpv4 = ipv4.joinToString(separator = ", ") { "0x" + String.format("%02X", it) }
+            val udpData = getUDPData(ipv4)
+            val hexTcpData =
+                udpData.joinToString(separator = ", ") { "0x" + String.format("%02X", it) }
+            val ipVersion = getIPVersion(ipv4)
+            val sourceAddress = getSourceIP(ipv4)
+            val destAddress = getDestIP(ipv4)
+            val gamePacketType = getPacketType(udpData)
+            Log.i(
+                "GamePacketCallBack",
+                "hexIpv4: $hexIpv4\ntcpData: $hexTcpData\nipVersion: $ipVersion sourceAddress: $sourceAddress destAddress: $destAddress gamePacketType: $gamePacketType"
+            )
+
             when (gamePacketType) {
                 KillPacketType.ROOM_BROADCAST -> {
                     onRoomBroadcast(ipv4)
@@ -177,8 +191,7 @@ class ZeroTierViewModel : ViewModel() {
 
     fun initZTConfig(context: Context) {
         if (!FileUtils.isExist(
-                context = context,
-                itemName = FileUtils.ItemName.NetworkConfig
+                context = context, itemName = FileUtils.ItemName.NetworkConfig
             )
         ) {
             FileUtils.write(
@@ -189,8 +202,7 @@ class ZeroTierViewModel : ViewModel() {
             )
         }
         if (!FileUtils.isExist(
-                context = context,
-                itemName = FileUtils.ItemName.Network
+                context = context, itemName = FileUtils.ItemName.Network
             )
         ) {
             FileUtils.write(
@@ -201,8 +213,7 @@ class ZeroTierViewModel : ViewModel() {
             )
         }
         if (!FileUtils.isExist(
-                context = context,
-                itemName = FileUtils.ItemName.AppSetting
+                context = context, itemName = FileUtils.ItemName.AppSetting
             )
         ) {
             FileUtils.write(
@@ -240,8 +251,7 @@ class ZeroTierViewModel : ViewModel() {
             NetworkRepository.ztClient.getMembers(networkID)
                 .enqueue(object : Callback<List<Member>> {
                     override fun onResponse(
-                        call: Call<List<Member>>,
-                        response: Response<List<Member>>
+                        call: Call<List<Member>>, response: Response<List<Member>>
                     ) {
                         try {
                             response.body()?.let { it ->

@@ -21,7 +21,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.experimental.and
 
-// TODO: clear up
+
 class TunTapAdapter(private val ztService: ZeroTierOneService, private val networkId: Long) :
     VirtualNetworkFrameListener {
     private var node: Node? = null
@@ -139,6 +139,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     }
 
     private fun handleIPv4Packet(packetData: ByteArray) {
+        Log.i(TAG, "handleIPv4Packet: packetData: $packetData")
         var handledPacketData: ByteArray = onHandleIPPacket(packetData)
         val isMulticast: Boolean
         val destMac: Long
