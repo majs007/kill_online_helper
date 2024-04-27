@@ -128,6 +128,19 @@ object IPPacketUtils {
 
     }
 
+    fun setIPV4Address(
+        ipv4: ByteArray,
+        sourceAddress: String? = null,
+        destinationAddress: String? = null
+    ) {
+        sourceAddress?.let {
+            InetAddress.getByName(it).address.copyInto(ipv4, 12)
+        }
+        destinationAddress?.let {
+            InetAddress.getByName(it).address.copyInto(ipv4, 16)
+        }
+    }
+
     fun setTCPCheckSum(ipv4: ByteArray) {
         val fakeHeader = ByteArray(12)
         val sourceAddress = ipv4.slice(12..15).toByteArray()

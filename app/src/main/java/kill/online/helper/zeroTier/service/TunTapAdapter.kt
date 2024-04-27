@@ -180,8 +180,8 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 break
             }
         }
-        val destRoute = InetAddressUtils.addressToRouteNo0Route(destIP, cidr)
-        val sourceRoute = InetAddressUtils.addressToRouteNo0Route(sourceIP, cidr)
+        val destRoute = InetAddressUtils.addressToNetworkPrefix(destIP, cidr)
+        val sourceRoute = InetAddressUtils.addressToNetworkPrefix(sourceIP, cidr)
         if (gateway != null && destRoute != sourceRoute) {
             destIP = gateway
         }
@@ -239,6 +239,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     }
 
     private fun handleIPv6Packet(packetData: ByteArray) {
+
         var handledPacketData: ByteArray = onHandleIPPacket(packetData)
         var destIP: InetAddress? = IPPacketUtils.getDestIP(handledPacketData)
         val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(handledPacketData)
@@ -274,8 +275,8 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 break
             }
         }
-        val destRoute = InetAddressUtils.addressToRouteNo0Route(destIP, cidr)
-        val sourceRoute = InetAddressUtils.addressToRouteNo0Route(sourceIP, cidr)
+        val destRoute = InetAddressUtils.addressToNetworkPrefix(destIP, cidr)
+        val sourceRoute = InetAddressUtils.addressToNetworkPrefix(sourceIP, cidr)
         if (gateway != null && destRoute != sourceRoute) {
             destIP = gateway
         }

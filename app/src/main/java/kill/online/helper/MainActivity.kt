@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import kill.online.helper.route.Navigation
 import kill.online.helper.ui.theme.killTheme
 import kill.online.helper.ui.window.FloatingWindowFactory
+import kill.online.helper.utils.FileUtils
 
 
 class MainActivity : ComponentActivity() {
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // 初始化悬浮窗
         FloatingWindowFactory.setApplicationContext(applicationContext)
+        FileUtils.applicationContext = applicationContext
         setContent {
             killTheme {
                 val externalNavController = rememberNavController()

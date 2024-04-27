@@ -662,6 +662,10 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         this.onStopZeroTier = onStopZeroTier
     }
 
+    fun getVirtualNetworkConfig(): VirtualNetworkConfig {
+        return node.networkConfig(networkId)
+    }
+
     inner class ZeroTierBinder : Binder() {
         val service: ZeroTierOneService
             get() = this@ZeroTierOneService

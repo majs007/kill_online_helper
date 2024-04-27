@@ -28,10 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kill.online.helper.data.RoomRule
 import kill.online.helper.ui.theme.appPadding
 import kill.online.helper.ui.theme.doubleSpacePadding
 import kill.online.helper.ui.theme.imePadding
 import kill.online.helper.ui.theme.textPadding
+import kill.online.helper.utils.FileUtils
+import kill.online.helper.utils.StateUtils.add
+import kill.online.helper.utils.StateUtils.update
 import kill.online.helper.viewModel.AppViewModel
 
 
@@ -100,10 +104,22 @@ fun RuleConfigSheet(
                 )
                 ElevatedButton(
                     onClick = {
-                        if (!isShow) appViewModel.addRoomRule(gameMode[checkedIndex], rule, context)
-                        else appViewModel.updateRoomRule(clickedIndex, context) {
-                            it.copy(mode = gameMode[checkedIndex], rule = rule)
-                        }
+//                        if (!isShow) appViewModel.addRoomRule(gameMode[checkedIndex], rule, context)
+                        if (!isShow) add(
+                            FileUtils.ItemName.RoomRule,
+                            appViewModel.roomRule,
+                            RoomRule(gameMode[checkedIndex], rule)
+                        )
+                        else
+                        /*       appViewModel.updateRoomRule(clickedIndex, context) {
+                               it.copy(mode = gameMode[checkedIndex], rule = rule)
+                           }*/
+                            update(
+                                FileUtils.ItemName.RoomRule,
+                                appViewModel.roomRule, clickedIndex
+                            ) {
+                                it.copy(mode = gameMode[checkedIndex], rule = rule)
+                            }
                         onDismissRequest()
                     },
                     modifier = Modifier

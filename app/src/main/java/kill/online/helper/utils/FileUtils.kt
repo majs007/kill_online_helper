@@ -7,6 +7,7 @@ import com.google.gson.reflect.TypeToken
 
 object FileUtils {
     const val TAG = "FileUtils"
+    lateinit var applicationContext: Context
 
     enum class DataType { Json, String, Int, Boolean }
     sealed class ItemName(val name: String) {
@@ -14,23 +15,25 @@ object FileUtils {
         data object NetworkConfig : ItemName("networkConfig")
         data object AppSetting : ItemName("appSetting")
         data object RoomRule : ItemName("roomRule")
+        data object Room : ItemName("room")
+        data object Blacklist : ItemName("blacklist")
     }
 
     fun isExist(
+        itemName: ItemName,
+        context: Context = applicationContext,
         fileName: String = "zeroTier",
-        context: Context,
-        itemName: ItemName
     ): Boolean {
         val sharedPreferences = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
         return sharedPreferences.contains(itemName.name)
     }
 
     inline fun <reified T> read(
-        fileName: String = "zeroTier",
-        context: Context,
-        dataType: DataType = DataType.Json,
         itemName: ItemName,
         defValue: T,
+        dataType: DataType = DataType.Json,
+        context: Context = applicationContext,
+        fileName: String = "zeroTier",
         callback: (content: T) -> Unit = {}
     ): T {
         val gson = Gson()
@@ -65,13 +68,11 @@ object FileUtils {
     }
 
     fun <T> write(
-        fileName: String = "zeroTier",
-        context: Context,
-        dataType: DataType = DataType.Json,
         itemName: ItemName,
-        prefix: String = "",
         content: T,
-        suffix: String = "",
+        dataType: DataType = DataType.Json,
+        context: Context = applicationContext,
+        fileName: String = "zeroTier",
         callback: (strContent: String) -> Unit = {}
     ) {
         val gson = Gson()

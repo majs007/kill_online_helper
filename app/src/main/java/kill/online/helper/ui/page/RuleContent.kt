@@ -18,6 +18,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import kill.online.helper.ui.components.SwitchItemContainer
+import kill.online.helper.utils.FileUtils
+import kill.online.helper.utils.StateUtils.delete
+import kill.online.helper.utils.StateUtils.load
+import kill.online.helper.utils.StateUtils.update
+
 import kill.online.helper.viewModel.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +39,8 @@ fun RuleContent(
     var clickedIndex by remember { mutableIntStateOf(-1) }
 
     LaunchedEffect(key1 = null) {
-        appViewModel.loadRoomRule(context)
+//        appViewModel.loadRoomRule(context)
+        load(FileUtils.ItemName.RoomRule, appViewModel.roomRule, listOf())
     }
     LazyColumn(
         state = ruleListState,
@@ -45,14 +51,29 @@ fun RuleContent(
                 onCheckedChange = {
                     val lastCheckedIndex = appViewModel.getCheckedRuleIndex()
                     //若存在上一次选中的规则，则将上次规则取消选中
-                    if (lastCheckedIndex != -1) appViewModel.updateRoomRule(
-                        appViewModel.getCheckedRuleIndex(), context
-                    ) {
-                        it.copy(checked = false)
-                    }
+                    if (lastCheckedIndex != -1)
+                    /*       appViewModel.updateRoomRule(
+                               appViewModel.getCheckedRuleIndex(),
+                               context
+                           ) {
+                               it.copy(checked = false)
+                           }*/
+                        update(
+                            FileUtils.ItemName.RoomRule,
+                            appViewModel.roomRule,
+                            appViewModel.getCheckedRuleIndex()
+                        ) {
+                            it.copy(checked = false)
+                        }
                     //若上次选中规则与当前规则不同，则将当前规则选中
                     if (lastCheckedIndex != index) {
-                        appViewModel.updateRoomRule(index, context) {
+                        /*    appViewModel.updateRoomRule(index, context) {
+                                it.copy(checked = true)
+                            }*/
+                        update(
+                            FileUtils.ItemName.RoomRule,
+                            appViewModel.roomRule, index
+                        ) {
                             it.copy(checked = true)
                         }
                     }
@@ -60,7 +81,8 @@ fun RuleContent(
                 icon = Icons.Filled.Delete,
                 onIconClicked = {
                     // 删除房间规则
-                    appViewModel.removeRoomRule(index, context)
+//                    appViewModel.removeRoomRule(index, context)
+                    delete(FileUtils.ItemName.RoomRule, appViewModel.roomRule, index)
 
                 },
                 iconEnabled = true,

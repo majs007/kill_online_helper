@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import kill.online.helper.data.Room
 import kill.online.helper.ui.theme.appPadding
 import kill.online.helper.ui.theme.cardRoundedCorner
 import kill.online.helper.ui.theme.floatingButtonPadding
@@ -52,6 +53,7 @@ fun HomeContent(
 ) {
     val context = LocalContext.current
     var isRoomInfoSheetShow by remember { mutableStateOf(false) }
+    var room by remember { mutableStateOf(Room()) }
     // 根据按钮状态获取对应的按钮颜色
     val runningColor = ButtonDefaults.elevatedButtonColors().copy(
         containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -80,11 +82,11 @@ fun HomeContent(
                 try {
                     if (!ztViewModel.isZTRunning.value) {
                         ztViewModel.startZeroTier(context)
-                        appViewModel.startHttpServer()
+                        appViewModel.startMsgServer()
 
                     } else {
                         ztViewModel.stopZeroTier(context)
-                        appViewModel.stopHttpServer()
+                        appViewModel.stopMsgServer()
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -130,9 +132,12 @@ fun HomeContent(
                 state = roomListState,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
-                items(5) {
+                items(ztViewModel.rooms.value) {
                     ElevatedButton(
-                        onClick = { isRoomInfoSheetShow = true },
+                        onClick = {
+                            room = it
+                            isRoomInfoSheetShow = true
+                        },
                         shape = RoundedCornerShape(cardRoundedCorner),
                         modifier = Modifier
                             .fillMaxWidth(0.8f)
@@ -143,11 +148,13 @@ fun HomeContent(
 //                                .background(Color.Cyan)
                                 .fillMaxWidth()
                         ) {
-                            Icon(
-                                Icons.Filled.Done, contentDescription = null,
+                            val roomState = if (it.state == Room.RoomState.WAITING) "🔥" else "😴"
+                            val isPrivateRoom = if (it.isPrivateRoom) "🔒" else "🔓"
+                            Text(
+                                text = "$isPrivateRoom  $roomState",
                                 modifier = Modifier.align(Alignment.CenterStart)
                             )
-                            Text(text = "房间A", modifier = Modifier.align(Alignment.Center))
+                            Text(text = it.roomName, modifier = Modifier.align(Alignment.Center))
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = null,
@@ -163,6 +170,7 @@ fun HomeContent(
 
     RoomInfoSheet(
         isShow = isRoomInfoSheetShow,
+        room = room,
         onDismissRequest = { isRoomInfoSheetShow = false })
 
 }

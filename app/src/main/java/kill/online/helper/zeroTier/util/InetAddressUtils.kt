@@ -72,13 +72,16 @@ object InetAddressUtils {
                 }
             }
         }
-        return addressToRouteNo0Route(inetAddress, i)
+        return addressToNetworkPrefix(inetAddress, i)
     }
 
     /**
      * 获得地址对应的网络前缀
      */
-    fun addressToRouteNo0Route(address: InetAddress, cidr: Int): InetAddress? {
+    fun addressToNetworkPrefix(address: InetAddress?, cidr: Int?): InetAddress? {
+        if (address == null || cidr == null) {
+            return null
+        }
         val netmask = addressToNetmask(address, cidr)
         val rawAddress = ByteArray(netmask.size)
         for (i in netmask.indices) {

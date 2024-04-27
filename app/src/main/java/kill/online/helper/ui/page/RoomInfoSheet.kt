@@ -22,21 +22,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kill.online.helper.data.Room
 import kill.online.helper.ui.theme.appPadding
 import kill.online.helper.ui.theme.chipPadding
 import kill.online.helper.ui.theme.quadrupleSpacePadding
 import kill.online.helper.ui.theme.textLineHeight
 import kill.online.helper.viewModel.AppViewModel
+import kill.online.helper.viewModel.ZeroTierViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun RoomInfoSheet(
     isShow: Boolean,
+    room: Room,
     onDismissRequest: () -> Unit,
-    sheetState: SheetState = rememberModalBottomSheetState()
+    sheetState: SheetState = rememberModalBottomSheetState(),
+    appViewModel: AppViewModel = viewModel(),
+    ztViewModel: ZeroTierViewModel = viewModel()
 ) {
-    val appViewModel: AppViewModel = viewModel()
     if (isShow) {
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
@@ -50,20 +54,19 @@ fun RoomInfoSheet(
                 Text(text = "房间A", modifier = Modifier.align(Alignment.Center))
             }
             Column(modifier = Modifier.padding(start = appPadding, end = appPadding)) {
-                Text(text = "房主：章鱼哥", lineHeight = textLineHeight)
-                Text(text = "游戏模式：标准", lineHeight = textLineHeight)
-                Text(text = "房间人数：5-8", lineHeight = textLineHeight)
-                Text(text = "房间描述：素将局", lineHeight = textLineHeight)
+                Text(text = "房主：${room.roomOwner}", lineHeight = textLineHeight)
+                Text(text = "游戏模式：${room.roomRule.mode}", lineHeight = textLineHeight)
+                Text(text = "房间规则：${room.roomRule.rule}", lineHeight = textLineHeight)
                 Text(text = "房间成员：", lineHeight = textLineHeight)
             }
             FlowRow(
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.padding(start = appPadding, end = appPadding)
             ) {
-                appViewModel.players.forEachIndexed { index, s ->
+                room.players.forEachIndexed { index, s ->
                     AssistChip(
                         onClick = { },
-                        label = { Text(s) },
+                        label = { Text(s.name) },
                         leadingIcon = {
                             Icon(
                                 Icons.Filled.Face,

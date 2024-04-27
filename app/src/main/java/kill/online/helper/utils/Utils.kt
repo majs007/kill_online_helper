@@ -18,7 +18,7 @@ fun showToast(context: Context, message: String) {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
 
-fun simulateHome(context: Context) {
+fun backToHome(context: Context) {
     val intent = Intent(Intent.ACTION_MAIN)
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     intent.addCategory(Intent.CATEGORY_HOME)

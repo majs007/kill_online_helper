@@ -16,7 +16,6 @@ class HttpServer(port: Int = HTTP_PORT_SERVER) : NanoHTTPD(port) {
     }
 
     override fun serve(session: IHTTPSession?): Response {
-//        val body: String = session?.inputStream?.bufferedReader().use { it?.readText() ?: "" }
         val body = mutableMapOf<String?, String?>()
         session?.parseBody(body)
         //日志输出外部请求相关的日志信息
@@ -62,7 +61,7 @@ class HttpServer(port: Int = HTTP_PORT_SERVER) : NanoHTTPD(port) {
         }
     }
 
-    fun onReceivedMessage(callback: (msg: Message) -> MessageResponse) {
+    fun setOnReceivedMessage(callback: (msg: Message) -> MessageResponse) {
         onReceivedMessageCallback = callback
     }
 }

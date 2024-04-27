@@ -49,7 +49,7 @@ import kill.online.helper.route.appTopBarTitle
 import kill.online.helper.ui.theme.floatingBallAlpha
 import kill.online.helper.ui.window.FloatingWindowFactory
 import kill.online.helper.ui.window.dragFloatingWindow
-import kill.online.helper.utils.simulateHome
+import kill.online.helper.utils.backToHome
 import kill.online.helper.viewModel.AppViewModel
 
 
@@ -151,7 +151,7 @@ fun AppScreen(appNavController: NavHostController, appViewModel: AppViewModel = 
                             if (appNavController.currentDestination?.route != appNavController.graph.startDestinationRoute) {
                                 appNavController.popBackStack()
                             } else {
-                                simulateHome(context)
+                                backToHome(context)
                             }
                         }
                     })
@@ -182,7 +182,7 @@ fun AppScreen(appNavController: NavHostController, appViewModel: AppViewModel = 
                             if (appNavController.currentDestination?.route != appNavController.graph.startDestinationRoute) {
                                 appNavController.popBackStack()
                             } else {
-                                simulateHome(context)
+                                backToHome(context)
                             }
                         }
                     })
