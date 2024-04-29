@@ -2,70 +2,234 @@ package kill.online.helper.ui.page
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChildCare
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.filled.AutoMode
+import androidx.compose.material.icons.filled.CellTower
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.DriveFileRenameOutline
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.HeartBroken
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.NotInterested
+import androidx.compose.material.icons.filled.Update
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import kill.online.helper.data.Message
+import kill.online.helper.data.AppSettingItem
+import kill.online.helper.ui.components.BasicItemContainer
+import kill.online.helper.ui.components.SwitchItemContainer
 import kill.online.helper.ui.components.Title
+import kill.online.helper.utils.FileUtils
+import kill.online.helper.utils.StateUtils.update
 import kill.online.helper.viewModel.AppViewModel
+import kill.online.helper.viewModel.ZeroTierViewModel
+
 
 @Composable
 fun SettingsContent(
-    appNavController: NavHostController, scaffoldNavController: NavHostController,
+    appNavController: NavHostController,
+    scaffoldNavController: NavHostController,
     settingListState: LazyListState = rememberLazyListState(),
-    appViewModel: AppViewModel = viewModel()
+    appViewModel: AppViewModel = viewModel(),
+    ztViewModel: ZeroTierViewModel = viewModel()
 ) {
-
-    val settings = remember { listOf("高级网络设置", "悬浮球设置", "房间设置", "关于") }
-    val settingsIcon = remember {
-        listOf(
-            Icons.Filled.Wifi, Icons.Filled.ChildCare,
-            Icons.Outlined.Home, Icons.Outlined.Info
-        )
-    }
-
+    var isShowAlertDialog by remember { mutableStateOf(false) }
+    var label by remember { mutableStateOf("") }
+    var input by remember { mutableStateOf("") }
     LazyColumn(
         state = settingListState,
         modifier = Modifier
     ) {
         item {
-            Title(text = { settings[0] })
-
+            Title(text = { AppSettingItem.ADVANCED_NETWORK_SETTING })
+            SwitchItemContainer(
+                checked = ztViewModel.appSetting.value.useCellularData,
+                onCheckedChange = {
+                    update(FileUtils.ItemName.AppSetting, ztViewModel.appSetting) {
+                        it.useCellularData = !it.useCellularData
+                        it.copy()
+                    }
+                },
+                icon = Icons.Filled.CellTower,
+                iconEnabled = true,
+                text = { AppSettingItem.USE_CELLULAR_DATA },
+                subText = { "优先使用移动数据，否则请使用【分配公网地址】的WiFi" },
+            )
+            SwitchItemContainer(
+                checked = ztViewModel.appSetting.value.disableIpv6,
+                onCheckedChange = {
+                    update(FileUtils.ItemName.AppSetting, ztViewModel.appSetting) {
+                        it.disableIpv6 = !it.disableIpv6
+                        it.copy()
+                    }
+                },
+                icon = Icons.Filled.NotInterested,
+                iconEnabled = true,
+                text = { AppSettingItem.DISABLE_IPV6 },
+                subText = { "禁用Ipv6会降低连通性" },
+            )
         }
         item {
-            Title(text = { settings[1] })
-
+            Title(text = { AppSettingItem.ROOM_SETTING })
+            SwitchItemContainer(
+                checked = ztViewModel.appSetting.value.roomSetting.customRoomName,
+                onCheckedChange = {
+                    update(FileUtils.ItemName.AppSetting, ztViewModel.appSetting) {
+                        it.roomSetting.customRoomName = !it.roomSetting.customRoomName
+                        it.copy()
+                    }
+                },
+                icon = Icons.Filled.DriveFileRenameOutline,
+                iconEnabled = true,
+                text = { AppSettingItem.CUSTOM_ROOM_NAME },
+                subText = { ztViewModel.appSetting.value.roomSetting.roomName },
+                onClick = {
+                    label = AppSettingItem.CUSTOM_ROOM_NAME
+                    input = ztViewModel.appSetting.value.roomSetting.roomName
+                    isShowAlertDialog = true
+                }
+            )
+            SwitchItemContainer(
+                checked = ztViewModel.appSetting.value.roomSetting.isPrivateRoom,
+                onCheckedChange = {
+                    update(FileUtils.ItemName.AppSetting, ztViewModel.appSetting) {
+                        it.roomSetting.isPrivateRoom = !it.roomSetting.isPrivateRoom
+                        it.copy()
+                    }
+                },
+                icon = Icons.Filled.Key,
+                iconEnabled = true,
+                text = { AppSettingItem.ROOM_PASSWORD },
+                subText = { ztViewModel.appSetting.value.roomSetting.roomPassword },
+                onClick = {
+                    label = AppSettingItem.ROOM_PASSWORD
+                    input = ztViewModel.appSetting.value.roomSetting.roomPassword
+                    isShowAlertDialog = true
+                }
+            )
+            SwitchItemContainer(
+                checked = ztViewModel.appSetting.value.roomSetting.enableBlackList,
+                onCheckedChange = {
+                    update(FileUtils.ItemName.AppSetting, ztViewModel.appSetting) {
+                        it.roomSetting.enableBlackList = !it.roomSetting.enableBlackList
+                        it.copy()
+                    }
+                },
+                icon = Icons.Filled.HeartBroken,
+                iconEnabled = true,
+                text = { AppSettingItem.BLACK_LIST },
+                subText = { "\"我们好像已经渐行渐远了\"" },
+                onClick = {
+                }
+            )
         }
         item {
-            Title(text = { settings[2] })
+            Title(text = { AppSettingItem.FW_ROOM_SETTING })
+            SwitchItemContainer(
+                checked = ztViewModel.appSetting.value.fwRoomSetting.autoPlayAudio,
+                onCheckedChange = {
+                    update(FileUtils.ItemName.AppSetting, ztViewModel.appSetting) {
+                        it.fwRoomSetting.autoPlayAudio = !it.fwRoomSetting.autoPlayAudio
+                        it.copy()
+                    }
+                },
+                icon = Icons.Filled.AutoMode,
+                iconEnabled = true,
+                text = { AppSettingItem.AUTO_PLAY_AUDIO },
+                subText = { "若关闭则需点击播放语音消息" },
 
+                )
+            BasicItemContainer(
+                icon = Icons.Filled.EmojiEmotions,
+                text = { AppSettingItem.MANAGE_EMOJI },
+                onClick = { /*TODO 表情包管理界面*/ },
+            )
         }
         item {
-            Title(text = { settings[3] })
-
-        }
-        item {
-            ElevatedButton(onClick = {
-                appViewModel.sendMessage("172.22.21.212", Message("player1", "Hello"))
-            }) {
-                Text(text = "发送")
-            }
-
-        }
-        items(appViewModel.messages.value) { message ->
-            Text(text = message.msg)
+            Title(text = { AppSettingItem.ABOUT })
+            BasicItemContainer(
+                icon = Icons.Filled.Code,
+                text = { AppSettingItem.ABOUT },
+                onClick = { /*TODO 关于界面*/ },
+            )
+            BasicItemContainer(
+                icon = Icons.Filled.Update,
+                text = { AppSettingItem.CHECK_UPDATE },
+                onClick = { /*TODO 检查更新界面*/ },
+            )
         }
     }
+    if (isShowAlertDialog)
+        AlertDialog(
+            icon = {
+                Icon(
+                    imageVector = when (label) {
+                        AppSettingItem.CUSTOM_ROOM_NAME -> Icons.Filled.DriveFileRenameOutline
+                        AppSettingItem.ROOM_PASSWORD -> Icons.Filled.Key
+                        else -> Icons.Filled.Edit
+                    }, contentDescription = null
+                )
+
+            },
+            title = {
+                Text(
+                    text = when (label) {
+                        AppSettingItem.CUSTOM_ROOM_NAME -> AppSettingItem.CUSTOM_ROOM_NAME
+                        AppSettingItem.ROOM_PASSWORD -> AppSettingItem.ROOM_PASSWORD
+                        else -> "输入"
+                    }
+                )
+
+            },
+            onDismissRequest = {
+                isShowAlertDialog = false
+                input = ""
+            },
+            confirmButton = {
+                ElevatedButton(onClick = {
+                    when (label) {
+                        AppSettingItem.CUSTOM_ROOM_NAME -> {
+                            update(FileUtils.ItemName.AppSetting, ztViewModel.appSetting) {
+                                it.roomSetting.roomName = input
+                                it.copy()
+                            }
+                        }
+                    }
+                    isShowAlertDialog = false
+                    input = ""
+                }) {
+                    Text(text = "确定")
+                }
+
+            },
+            text = {
+                OutlinedTextField(value = input,
+                    label = {
+                        Text(
+                            text =
+                            when (label) {
+                                AppSettingItem.CUSTOM_ROOM_NAME -> "房间名"
+                                AppSettingItem.ROOM_PASSWORD -> "密码"
+                                else -> ""
+                            }
+                        )
+                    },
+                    onValueChange = { newValue -> input = newValue })
+            })
 
 }
+
+
+

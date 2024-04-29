@@ -70,7 +70,7 @@ class UdpCom internal constructor(
                             Log.e(TAG, "processWirePacket returned: $processWirePacket")
                             ztService.stopZeroTier()
                         }
-                        ztService.nextBackgroundTaskDeadline = jArr[0]
+                        ztService.setDeadline(jArr[0])
                     }
                 } catch (ignored: SocketTimeoutException) {
                 }

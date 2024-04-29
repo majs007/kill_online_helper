@@ -17,6 +17,9 @@ object FileUtils {
         data object RoomRule : ItemName("roomRule")
         data object Room : ItemName("room")
         data object Blacklist : ItemName("blacklist")
+        data object Message : ItemName("message")
+        data object Moon : ItemName("moon")
+        data object AllItems : ItemName("allItems")
     }
 
     fun isExist(

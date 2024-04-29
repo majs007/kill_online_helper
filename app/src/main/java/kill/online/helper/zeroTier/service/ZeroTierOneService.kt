@@ -1,6 +1,5 @@
 package kill.online.helper.zeroTier.service
 
-import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -25,9 +24,12 @@ import com.zerotier.sdk.VirtualNetworkConfigOperation
 import com.zerotier.sdk.util.StringUtils.addressToString
 import kill.online.helper.MainActivity
 import kill.online.helper.R
-import kill.online.helper.data.AppSetting
 import kill.online.helper.utils.FileUtils
 import kill.online.helper.utils.FileUtils.read
+import kill.online.helper.utils.StateUtils.update
+import kill.online.helper.viewModel.ZeroTierViewModel
+import kill.online.helper.viewModel.ZeroTierViewModel.appSetting
+import kill.online.helper.zeroTier.model.Moon
 import kill.online.helper.zeroTier.model.UserNetworkConfig
 import kill.online.helper.zeroTier.model.type.DNSMode
 import kill.online.helper.zeroTier.util.Constants
@@ -54,7 +56,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
     private var disableIPv6 by Delegates.notNull<Boolean>()
     private var startID by Delegates.notNull<Int>()
     private var networkId by Delegates.notNull<Long>()
-    var nextBackgroundTaskDeadline: Long = 0
+    private var nextBackgroundTaskDeadline: Long = 0
     private var svrSocket: DatagramSocket = DatagramSocket(null)
     val node: Node = Node(System.currentTimeMillis())
     private var vpnSocket: ParcelFileDescriptor? = null
@@ -191,15 +193,9 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
     private var onStartZeroTier: () -> Unit = {}
     private var onStopZeroTier: () -> Unit = {}
 
-    @SuppressLint("BinderGetCallingInMainThread")
-    override fun onBind(intent: Intent): IBinder {
-        Log.d(TAG, "Bound by: " + packageManager.getNameForUid(Binder.getCallingUid()))
-        return mBinder
-    }
 
-    override fun onUnbind(intent: Intent): Boolean {
-        Log.d(TAG, "Unbound by: " + packageManager.getNameForUid(Binder.getCallingUid()))
-        return false
+    override fun onBind(intent: Intent): IBinder {
+        return mBinder
     }
 
     @Synchronized
@@ -215,12 +211,8 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         networkId = intent.getLongExtra(ZT_NETWORK_ID, 0)
         tunTapAdapter = TunTapAdapter(this, networkId)
         // 检查当前的网络设置项
-        val appSetting = read(
-            context = this, dataType = FileUtils.DataType.Json,
-            itemName = FileUtils.ItemName.AppSetting, defValue = AppSetting()
-        )
-        val useCellularData = appSetting.useCellularData
-        disableIPv6 = appSetting.disableIpv6
+        val useCellularData = appSetting.value.useCellularData
+        disableIPv6 = appSetting.value.disableIpv6
         //查询当前网络连接情况
         val currentConnection = NetworkInfoUtils.getNetworkInfoCurrentConnection(this)
         if (currentConnection == CurrentConnection.CONNECTION_NONE) {
@@ -298,7 +290,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
                 if (cmp <= 0) {
                     val newDeadline = longArrayOf(0)
                     val taskResult = node.processBackgroundTasks(currentTime, newDeadline)
-                    synchronized(this) { nextBackgroundTaskDeadline = newDeadline[0] }
+                    setDeadline(newDeadline[0])
                     if (taskResult != ResultCode.RESULT_OK) {
                         Log.e(TAG, "Error on processBackgroundTasks: $taskResult")
                         stopZeroTier()
@@ -314,6 +306,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         Log.d(TAG, "ZeroTierOne Service Ended")
     }
 
+    @Synchronized
     fun stopZeroTier() {
         svrSocket.close()
         if (udpThread.isAlive) {
@@ -361,7 +354,6 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         onStopZeroTier()
     }
 
-
     override fun onEvent(event: Event) {
         Log.d(TAG, "Event: $event")
     }
@@ -392,6 +384,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
                 VirtualNetworkConfigOperation.VIRTUAL_NETWORK_CONFIG_OPERATION_CONFIG_UPDATE -> {
                     Log.i(TAG, "Network Config Update!")
                     updateTunnelConfig(config)
+                    orbitNetwork()
                     onStartZeroTier()
                 }
 
@@ -406,7 +399,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
     }
 
     //android 系统vpn配置
-    fun updateTunnelConfig(
+    private fun updateTunnelConfig(
         virtualNetworkConfig: VirtualNetworkConfig
     ): Boolean {
         val userNetworkConfig = read<List<UserNetworkConfig>>(
@@ -666,6 +659,48 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
         return node.networkConfig(networkId)
     }
 
+    @Synchronized
+    fun setDeadline(deadline: Long) {
+        nextBackgroundTaskDeadline = deadline
+    }
+
+    private fun orbitNetwork() {
+        try {
+            ZeroTierViewModel.ztMoon.value.forEach { moon ->
+                // 入轨
+                val result = node.orbit(
+                    BigInteger(moon.moonWorldId, 16).toLong(),
+                    BigInteger(moon.moonSeed, 16).toLong()
+                )
+                if (result != ResultCode.RESULT_OK) {
+
+                    update(
+                        FileUtils.ItemName.Moon,
+                        ZeroTierViewModel.ztMoon,
+                        ZeroTierViewModel.ztMoon.value.indexOf(moon)
+                    ) {
+                        it.state = Moon.MoonState.DERAILMENT
+                        it.copy()
+                    }
+                    Log.e(TAG, "Failed to orbit ${moon.moonSeed}")
+                } else {
+                    update(
+                        FileUtils.ItemName.Moon,
+                        ZeroTierViewModel.ztMoon,
+                        ZeroTierViewModel.ztMoon.value.indexOf(moon)
+                    ) {
+                        it.state = Moon.MoonState.ORBIT
+                        it.copy()
+                    }
+                    Log.d(TAG, "Orbit ${moon.moonSeed}")
+
+                }
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to orbit network", e)
+        }
+    }
+
     inner class ZeroTierBinder : Binder() {
         val service: ZeroTierOneService
             get() = this@ZeroTierOneService
@@ -673,10 +708,7 @@ class ZeroTierOneService : VpnService(), Runnable, EventListener, VirtualNetwork
 
     companion object {
         private const val TAG = "ZT_Service"
-        const val MSG_JOIN_NETWORK = 1
-        const val MSG_LEAVE_NETWORK = 2
         const val ZT_NETWORK_ID = "com.zerotier.one.network_id"
-        const val ZT_USE_DEFAULT_ROUTE = "com.zerotier.one.use_default_route"
         private val DISALLOWED_APPS = arrayOf("com.android.vending")
         private const val ZT_NOTIFICATION_TAG = 5919812
     }

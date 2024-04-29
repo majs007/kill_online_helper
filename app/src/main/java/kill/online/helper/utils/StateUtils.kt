@@ -95,8 +95,8 @@ object StateUtils {
             )
     }
 
-    fun <T> update(
 
+    fun <T> update(
         itemName: FileUtils.ItemName,
         state: MutableState<T>,
         autoSave: Boolean = true,
@@ -111,4 +111,5 @@ object StateUtils {
                 content = state.value
             )
     }
+
 }

@@ -4,23 +4,38 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.media.MediaMetadataRetriever
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import android.os.IBinder
+import android.util.Base64
 import android.util.Log
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
 import kill.online.helper.client.NetworkRepository
 import kill.online.helper.data.Message
 import kill.online.helper.data.MessageResponse
-import kill.online.helper.data.Room
+import kill.online.helper.data.MsgType
 import kill.online.helper.server.HttpServer
 import kill.online.helper.server.HttpServer.Companion.HTTP_PORT_SERVER
 import kill.online.helper.server.HttpServer.Companion.URI_MESSAGE
 import kill.online.helper.server.MessageService
+import kill.online.helper.utils.FileUtils
+import kill.online.helper.utils.StateUtils.add
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.BufferedInputStream
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileWriter
 
-class AppViewModel : ViewModel() {
+
+object AppViewModel : ViewModel() {
     private val TAG = "AppViewModel"
     val isHTTPRunning = mutableStateOf(false)
 
@@ -29,13 +44,9 @@ class AppViewModel : ViewModel() {
         override fun onServiceConnected(componentName: ComponentName, iBinder: IBinder) {
             this@AppViewModel.msgServer =
                 (iBinder as MessageService.MessageBinder).server
-            msgServer.setOnReceivedMessage {
-                val newMessages = messages.value.toMutableList()
-                newMessages.add(it)
-                messages.value = newMessages.toList()
-                MessageResponse()
-            }
-            iBinder.setCallBack(onStart = { isHTTPRunning.value = true },
+            msgServer.setListener(onReceiveMessage = ::onReceivedMessage)
+
+            iBinder.startMsgServer(onStart = { isHTTPRunning.value = true },
                 onStop = { isHTTPRunning.value = false })
             Log.i(TAG, "onServiceConnected: succeed to bind msg Service")
         }
@@ -46,50 +57,23 @@ class AppViewModel : ViewModel() {
     }
 
     var isAddRule = mutableStateOf(false)
-    val roomRule = mutableStateOf(listOf<Room.RoomRule>())
+
     val messages = mutableStateOf(listOf<Message>())
+    private var recorder: MediaRecorder = MediaRecorder()
+    private val retriever = MediaMetadataRetriever()
+    private val mediaPlayer = MediaPlayer()
+    private var audioFile: File = File.createTempFile("temp_record", "3gp")
+    var voice by mutableStateOf("")
 
+    var toScreenOffset by mutableStateOf(Offset(0f, 0f))
+    var toWindowOffset by mutableStateOf(Offset(0f, 0f))
+    var toRootOffset by mutableStateOf(Offset(0f, 0f))
+    var toOriginOffset by mutableStateOf(Offset(0f, 0f))
 
-    /*    fun loadRoomRule(context: Context) {
-            roomRule.value = FileUtils.read(
-                context = context,
-                dataType = FileUtils.DataType.Json,
-                itemName = FileUtils.ItemName.RoomRule,
-                defValue = listOf()
-            )
-        }
+    var showReceivedImg by mutableStateOf(false)
+    var receivedImg by mutableStateOf(Message())
+    var receivedAudio: File = File.createTempFile("received_audio", "3gp")
 
-        fun addRoomRule(mode: String, rule: String, context: Context? = null) {
-            val newRoomRule = roomRule.value.toMutableList()
-            newRoomRule.add(RoomRule(mode, rule))
-            roomRule.value = newRoomRule.toList()
-            context?.let { saveRoomRule(it) }
-        }
-
-        fun updateRoomRule(index: Int, context: Context? = null, also: (it: RoomRule) -> RoomRule) {
-            val newRoomRule = roomRule.value.toMutableList()
-            newRoomRule[index] = also(newRoomRule[index])
-            roomRule.value = newRoomRule.toList()
-            context?.let { saveRoomRule(it) }
-        }
-
-        fun removeRoomRule(index: Int, context: Context? = null) {
-            val newRoomRule = roomRule.value.toMutableList()
-            newRoomRule.removeAt(index)
-            roomRule.value = newRoomRule.toList()
-            context?.let { saveRoomRule(it) }
-
-        }
-
-        private fun saveRoomRule(context: Context) {
-            FileUtils.write(
-                context = context,
-                dataType = FileUtils.DataType.Json,
-                itemName = FileUtils.ItemName.RoomRule,
-                content = roomRule.value,
-            )
-        }*/
-    fun getCheckedRuleIndex(): Int = roomRule.value.indexOfFirst { it.checked }
 
     fun sendMessage(ip: String, msg: Message) {
         NetworkRepository.appClient.sendMessage(
@@ -119,7 +103,6 @@ class AppViewModel : ViewModel() {
             Context.BIND_NOT_FOREGROUND or Context.BIND_DEBUG_UNBIND
         )
         context.startService(msgIntent)
-
     }
 
     fun stopMsgServer(context: Context) {
@@ -128,5 +111,85 @@ class AppViewModel : ViewModel() {
             Log.e(TAG, "stopMsgServer returned false")
         }
         context.unbindService(msgConnection)
+    }
+
+    fun startRecording() {
+        recorder.apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+            setOutputFile(audioFile.absolutePath)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+            try {
+                prepare()
+                start()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun stopRecording() {
+        recorder.apply {
+            stop()
+            release()
+        }
+        voice = Base64.encodeToString(readAudioFile(), Base64.DEFAULT)
+    }
+
+    fun clearRecord() = BufferedWriter(FileWriter(audioFile)).use { it.write("") }
+
+    private fun readAudioFile(): ByteArray {
+        val bis = BufferedInputStream(FileInputStream(audioFile))
+        val data = ByteArray(audioFile.length().toInt())
+        bis.read(data)
+        bis.close()
+        return data
+    }
+
+    fun getAudioDuration(): Long {
+        retriever.setDataSource(audioFile.absolutePath)
+        val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+        retriever.release()
+        return durationStr?.toLongOrNull() ?: 0
+    }
+
+    private fun onReceivedMessage(newMsg: Message): MessageResponse {
+        when (newMsg.type) {
+            MsgType.TEXT -> {
+                add(FileUtils.ItemName.Message, messages, newMsg, autoSave = false) { msgList ->
+                    msgList.sortedBy { it.timeStamp }
+                }
+            }
+
+            MsgType.IMAGE -> {
+                receivedImg = newMsg
+                showReceivedImg = true
+            }
+
+            MsgType.AUDIO -> {
+                add(FileUtils.ItemName.Message, messages, newMsg, autoSave = false) { msgList ->
+                    msgList.sortedBy { it.timeStamp }
+                }
+                receivedAudio.writeBytes(Base64.decode(newMsg.msg, Base64.DEFAULT))
+                if (ZeroTierViewModel.appSetting.value.fwRoomSetting.autoPlayAudio)
+                    playAudio()
+
+            }
+        }
+        return MessageResponse()
+    }
+
+    fun playAudio() {
+        mediaPlayer.apply {
+            reset()
+            setDataSource(receivedAudio.absolutePath)
+            prepare()
+            start()
+        }
+    }
+
+    override fun onCleared() {
+        mediaPlayer.release()
+        super.onCleared()
     }
 }

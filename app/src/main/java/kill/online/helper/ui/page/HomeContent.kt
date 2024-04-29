@@ -66,9 +66,10 @@ fun HomeContent(
     val btnText = remember(ztViewModel.isZTRunning.value) {
         mutableStateOf(if (ztViewModel.isZTRunning.value) "已启用" else "未启用")
     }
+
     LaunchedEffect(null) {
-        ztViewModel.initZTConfig(context)
-        ztViewModel.loadZTConfig(context)
+        ztViewModel.initZTConfig()
+        ztViewModel.loadZTConfig()
     }
     Column(
         modifier = Modifier
@@ -82,11 +83,11 @@ fun HomeContent(
                 try {
                     if (!ztViewModel.isZTRunning.value) {
                         ztViewModel.startZeroTier(context)
-                        appViewModel.startMsgServer()
+                        appViewModel.startMsgServer(context)
 
                     } else {
                         ztViewModel.stopZeroTier(context)
-                        appViewModel.stopMsgServer()
+                        appViewModel.stopMsgServer(context)
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -104,10 +105,11 @@ fun HomeContent(
             )
         }
         Spacer(modifier = Modifier.height(30.dp))
+
         OutlinedCard(
             modifier = Modifier
                 .padding(bottom = floatingButtonPadding)
-                .fillMaxWidth()
+                .fillMaxSize()
                 .align(Alignment.CenterHorizontally)
         ) {
             Box(

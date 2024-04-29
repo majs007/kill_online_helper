@@ -10,4 +10,5 @@ import retrofit2.http.Url
 interface AppClient {
     @POST
     fun sendMessage(@Url url: String, @Body body: Message): Call<MessageResponse>
+
 }

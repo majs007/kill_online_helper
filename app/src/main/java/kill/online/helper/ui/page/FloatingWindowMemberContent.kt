@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kill.online.helper.data.Room
 import kill.online.helper.ui.theme.FloatingWindowPadding
 import kill.online.helper.ui.theme.chipPadding
@@ -33,8 +34,8 @@ import kill.online.helper.viewModel.ZeroTierViewModel
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FloatingWindowMemberContent(
-    appViewModel: AppViewModel = AppViewModel(),
-    ztViewModel: ZeroTierViewModel = ZeroTierViewModel()
+    appViewModel: AppViewModel = viewModel(),
+    ztViewModel: ZeroTierViewModel = viewModel()
 ) {
     val popUpMenuItem = listOf("踢出", "拉黑")
     var expanded by remember { mutableStateOf(false) }
@@ -87,6 +88,7 @@ fun FloatingWindowMemberContent(
                 text = { Text(popUpMenuItem[1]) },
                 onClick = {
                     add(FileUtils.ItemName.Blacklist, ztViewModel.blacklist, clickedPlayer)
+
                 }
             )
         }

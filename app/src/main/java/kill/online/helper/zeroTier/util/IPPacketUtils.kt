@@ -63,10 +63,31 @@ object IPPacketUtils {
         return (bArr[0].toInt() shr 4).toByte()
     }
 
+    fun isInNetwork(sourceAddress: InetAddress?, networkPrefix: InetAddress?): Boolean {
+        val sourceAddressBytes = sourceAddress?.address
+        val networkPrefixBytes = networkPrefix?.address
+        if (sourceAddressBytes != null && networkPrefixBytes != null) {
+            for (i in networkPrefixBytes.indices) {
+                if (sourceAddressBytes[i] != networkPrefixBytes[i] && networkPrefixBytes[i].toInt() != 0) {
+                    return false
+                }
+            }
+            return true
+        }
+        return false
+
+    }
+
     fun getUDPData(ipv4: ByteArray): ByteArray {
         val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
         val udpHeaderLength = 8
         return ipv4.slice(ipHeaderLength + udpHeaderLength until ipv4.size).toByteArray()
+    }
+
+    fun getTCPData(ipv4: ByteArray): ByteArray {
+        val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
+        val tcpHeaderLength = (ipv4[ipHeaderLength + 12].toInt() and 0xF0) shr 2
+        return ipv4.slice(ipHeaderLength + tcpHeaderLength until ipv4.size).toByteArray()
     }
 
     fun calculateChecksum(bArr: ByteArray, j: Long, i: Int, i2: Int): Long {
@@ -112,7 +133,7 @@ object IPPacketUtils {
         return (sum.inv() and 0xFFFF).toUShort()
     }
 
-    fun setIPV4CheckSum(ipv4: ByteArray) {
+    private fun setIPV4CheckSum(ipv4: ByteArray) {
         val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
         println("ipHeaderLength: $ipHeaderLength")
         val ipv4Header = ipv4.slice(0 until ipHeaderLength).toByteArray()
@@ -141,7 +162,7 @@ object IPPacketUtils {
         }
     }
 
-    fun setTCPCheckSum(ipv4: ByteArray) {
+    private fun setTCPCheckSum(ipv4: ByteArray) {
         val fakeHeader = ByteArray(12)
         val sourceAddress = ipv4.slice(12..15).toByteArray()
         val destinationAddress = ipv4.slice(16..19).toByteArray()
@@ -158,11 +179,11 @@ object IPPacketUtils {
         tcp[16] = 0
         tcp[17] = 0
         val checkSum = calculateChecksum(fakeHeader + tcp).toInt()
-        ipv4[36] = (checkSum shr 8).toByte()
-        ipv4[37] = checkSum.toByte()
+        ipv4[ipHeaderLength + 16] = (checkSum shr 8).toByte()
+        ipv4[ipHeaderLength + 17] = checkSum.toByte()
     }
 
-    fun setUDPCheckSum(ipv4: ByteArray) {
+    private fun setUDPCheckSum(ipv4: ByteArray) {
         val fakeHeader = ByteArray(12)
         val sourceAddress = ipv4.slice(12..15).toByteArray()
         val destinationAddress = ipv4.slice(16..19).toByteArray()
@@ -186,16 +207,35 @@ object IPPacketUtils {
     }
 
     fun handleUDPData(ipv4: ByteArray, lambda: (udpData: ByteArray) -> ByteArray): ByteArray {
-        val oldUdpData = IPPacketUtils.getUDPData(ipv4)
+        val oldUdpData = getUDPData(ipv4)
         val newUdpData = lambda(oldUdpData)
         val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
-
-        val header = ipv4.slice(0 until ipHeaderLength + 8).toByteArray()
+        val udpHeaderLength = 8
+        val header = ipv4.slice(0 until ipHeaderLength + udpHeaderLength).toByteArray()
 
         val newIpv4 = header + newUdpData
         setUDPCheckSum(newIpv4)
-        setUDPCheckSum(newIpv4)
+        setIPV4CheckSum(newIpv4)
         return newIpv4
     }
 
+    // 其他字段处理
+    fun handleTCPDate(ipv4: ByteArray, lambda: (update: ByteArray) -> ByteArray): ByteArray {
+        val oldTcpData = getTCPData(ipv4)
+        val newTcpData = lambda(oldTcpData)
+        val ipHeaderLength = (ipv4[0].toInt() and 0x0F) * 4
+        val tcpHeaderLength = (ipv4[ipHeaderLength + 12].toInt() and 0xF0) shr 2
+
+        val header = ipv4.slice(0 until ipHeaderLength + tcpHeaderLength).toByteArray()
+
+        val newIpv4 = header + newTcpData
+        val ipTotalLength = newIpv4.size
+        //设置ip total length
+        newIpv4[2] = (ipTotalLength shr 8).toByte()
+        newIpv4[3] = ipTotalLength.toByte()
+
+        setTCPCheckSum(newIpv4)
+        setIPV4CheckSum(newIpv4)
+        return newIpv4
+    }
 }

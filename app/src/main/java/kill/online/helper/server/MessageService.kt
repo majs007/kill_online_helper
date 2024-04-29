@@ -10,7 +10,6 @@ class MessageService : Service() {
     private val TAG = "MessageService"
     private val mBinder: IBinder = MessageBinder()
     val httpServer: HttpServer = HttpServer()
-    private lateinit var onStart: () -> Unit
     private lateinit var onStop: () -> Unit
 
     override fun onBind(intent: Intent?): IBinder {
@@ -24,12 +23,14 @@ class MessageService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        httpServer.start()
+        Log.d(TAG, "onStartCommand: ")
         return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onDestroy() {
         httpServer.stop()
+        onStop()
+        Log.i(TAG, "onDestroy: stop http server")
         super.onDestroy()
     }
 
@@ -38,9 +39,11 @@ class MessageService : Service() {
         val server: HttpServer
             get() = this@MessageService.httpServer
 
-        fun setCallBack(onStart: () -> Unit, onStop: () -> Unit) {
-            this@MessageService.onStart = onStart
+        fun startMsgServer(onStart: () -> Unit, onStop: () -> Unit) {
             this@MessageService.onStop = onStop
+            httpServer.start()
+            onStart()
+            Log.i(TAG, "setCallBack: start http server")
         }
 
     }

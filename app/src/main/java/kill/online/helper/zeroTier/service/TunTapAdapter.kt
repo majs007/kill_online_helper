@@ -140,23 +140,37 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
 
     private fun handleIPv4Packet(packetData: ByteArray) {
         Log.i(TAG, "handleIPv4Packet: packetData: $packetData")
-        var handledPacketData: ByteArray = onHandleIPPacket(packetData)
-        val isMulticast: Boolean
-        val destMac: Long
-        var destIP: InetAddress? = IPPacketUtils.getDestIP(handledPacketData)
-        val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(handledPacketData)
         val virtualNetworkConfig: VirtualNetworkConfig? = ztService.node.networkConfig(networkId)
+        val originalSourceIP: InetAddress? = IPPacketUtils.getSourceIP(packetData)
+        val originalDestIP: InetAddress? = IPPacketUtils.getDestIP(packetData)
+
         if (virtualNetworkConfig == null) {
             Log.e(TAG, "TunTapAdapter has no network config yet")
             return
-        } else if (destIP == null) {
+        } else if (originalDestIP == null) {
             Log.e(TAG, "destAddress is null")
             return
-        } else if (sourceIP == null) {
+        } else if (originalSourceIP == null) {
             Log.e(TAG, "sourceAddress is null")
             return
         }
-        isMulticast = if (isIPv4Multicast(destIP)) {
+        val assignedIp = virtualNetworkConfig.assignedAddresses?.first()
+        val networkPrefix =
+            InetAddressUtils.addressToNetworkPrefix(assignedIp?.address, assignedIp?.port)
+
+        var handledPacketData: ByteArray =
+            if (IPPacketUtils.isInNetwork(originalSourceIP, networkPrefix) ||
+                IPPacketUtils.isInNetwork(originalDestIP, networkPrefix)
+            ) {
+                onHandleIPPacket(packetData)
+            } else {
+                packetData
+            }
+
+        var destIP: InetAddress = IPPacketUtils.getDestIP(handledPacketData) ?: return
+        val sourceIP: InetAddress = IPPacketUtils.getSourceIP(handledPacketData) ?: return
+
+        val isMulticast: Boolean = if (isIPv4Multicast(destIP)) {
             val result: ResultCode =
                 node!!.multicastSubscribe(networkId, multicastAddressToMAC(destIP))
             if (result != ResultCode.RESULT_OK) {
@@ -191,6 +205,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
         }
         val localMac: Long = virtualNetworkConfig.mac
         val nextDeadline = LongArray(1)
+        val destMac: Long
         if (isMulticast || arpTable!!.hasMacForAddress(destIP)) {
             // 已确定目标 MAC，直接发送
             destMac = if (isIPv4Multicast(destIP)) {
@@ -213,7 +228,8 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 return
             }
             Log.d(TAG, "Packet sent to ZT")
-            ztService.nextBackgroundTaskDeadline = nextDeadline[0]
+            ztService.setDeadline(nextDeadline[0])
+
         } else {
             // 目标 MAC 未知，进行 ARP 查询
             Log.d(TAG, "Unknown dest MAC address.  Need to look it up. $destIP")
@@ -234,13 +250,13 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 return
             }
             Log.d(TAG, "ARP Request Sent!")
-            ztService.nextBackgroundTaskDeadline = nextDeadline[0]
+            ztService.setDeadline(nextDeadline[0])
         }
     }
 
     private fun handleIPv6Packet(packetData: ByteArray) {
 
-        var handledPacketData: ByteArray = onHandleIPPacket(packetData)
+        var handledPacketData: ByteArray = packetData
         var destIP: InetAddress? = IPPacketUtils.getDestIP(handledPacketData)
         val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(handledPacketData)
         val virtualNetworkConfig: VirtualNetworkConfig? = ztService.node.networkConfig(networkId)
@@ -335,7 +351,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 Log.e(TAG, "Error calling processVirtualNetworkFrame: $result")
             } else {
                 Log.d(TAG, "Packet sent to ZT")
-                ztService.nextBackgroundTaskDeadline = nextDeadline[0]
+                ztService.setDeadline(nextDeadline[0])
             }
         }
         // 发送 NS 请求
@@ -359,7 +375,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                 Log.e(TAG, "Error calling processVirtualNetworkFrame: $result")
             } else {
                 Log.d(TAG, "Neighbor Solicitation sent to ZT")
-                ztService.nextBackgroundTaskDeadline = nextDeadline[0]
+                ztService.setDeadline(nextDeadline[0])
             }
         }
     }
@@ -452,7 +468,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                     }
 
                     Log.d(TAG, "ARP Reply Sent!")
-                    ztService.nextBackgroundTaskDeadline = nextDeadline[0]
+                    ztService.setDeadline(nextDeadline[0])
                 }
             }
         } else if (etherType == IPV4_PACKET.toLong()) {

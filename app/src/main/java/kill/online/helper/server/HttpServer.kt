@@ -61,7 +61,8 @@ class HttpServer(port: Int = HTTP_PORT_SERVER) : NanoHTTPD(port) {
         }
     }
 
-    fun setOnReceivedMessage(callback: (msg: Message) -> MessageResponse) {
-        onReceivedMessageCallback = callback
+    fun setListener(onReceiveMessage: (msg: Message) -> MessageResponse) {
+        onReceivedMessageCallback = onReceiveMessage
     }
+
 }

@@ -24,6 +24,7 @@ import kill.online.helper.utils.StateUtils.load
 import kill.online.helper.utils.StateUtils.update
 
 import kill.online.helper.viewModel.AppViewModel
+import kill.online.helper.viewModel.ZeroTierViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +32,8 @@ fun RuleContent(
     appNavController: NavHostController,
     scaffoldNavController: NavHostController,
     ruleListState: LazyListState = rememberLazyListState(),
-    appViewModel: AppViewModel = viewModel()
+    appViewModel: AppViewModel = viewModel(),
+    ztViewModel: ZeroTierViewModel = viewModel()
 ) {
 
     val context = LocalContext.current
@@ -40,16 +42,16 @@ fun RuleContent(
 
     LaunchedEffect(key1 = null) {
 //        appViewModel.loadRoomRule(context)
-        load(FileUtils.ItemName.RoomRule, appViewModel.roomRule, listOf())
+        load(FileUtils.ItemName.RoomRule, ztViewModel.roomRule, listOf())
     }
     LazyColumn(
         state = ruleListState,
     ) {
-        itemsIndexed(appViewModel.roomRule.value) { index, item ->
+        itemsIndexed(ztViewModel.roomRule.value) { index, item ->
             SwitchItemContainer(
-                checked = appViewModel.roomRule.value[index].checked,
+                checked = ztViewModel.roomRule.value[index].checked,
                 onCheckedChange = {
-                    val lastCheckedIndex = appViewModel.getCheckedRuleIndex()
+                    val lastCheckedIndex = ztViewModel.getCheckedRuleIndex()
                     //若存在上一次选中的规则，则将上次规则取消选中
                     if (lastCheckedIndex != -1)
                     /*       appViewModel.updateRoomRule(
@@ -60,8 +62,8 @@ fun RuleContent(
                            }*/
                         update(
                             FileUtils.ItemName.RoomRule,
-                            appViewModel.roomRule,
-                            appViewModel.getCheckedRuleIndex()
+                            ztViewModel.roomRule,
+                            ztViewModel.getCheckedRuleIndex()
                         ) {
                             it.copy(checked = false)
                         }
@@ -72,7 +74,7 @@ fun RuleContent(
                             }*/
                         update(
                             FileUtils.ItemName.RoomRule,
-                            appViewModel.roomRule, index
+                            ztViewModel.roomRule, index
                         ) {
                             it.copy(checked = true)
                         }
@@ -82,7 +84,7 @@ fun RuleContent(
                 onIconClicked = {
                     // 删除房间规则
 //                    appViewModel.removeRoomRule(index, context)
-                    delete(FileUtils.ItemName.RoomRule, appViewModel.roomRule, index)
+                    delete(FileUtils.ItemName.RoomRule, ztViewModel.roomRule, index)
 
                 },
                 iconEnabled = true,
@@ -90,7 +92,8 @@ fun RuleContent(
                 onClick = {
                     clickedIndex = index
                     isRuleConfigShow = true
-                })
+                }
+            )
         }
     }
 

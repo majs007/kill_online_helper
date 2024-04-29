@@ -21,28 +21,28 @@ import kill.online.helper.utils.FileUtils
 import kill.online.helper.utils.KillPacketType
 import kill.online.helper.utils.StateUtils
 import kill.online.helper.utils.StateUtils.update
-import kill.online.helper.utils.getPacketType
+import kill.online.helper.utils.getServerPacketType
+import kill.online.helper.zeroTier.model.Moon
 import kill.online.helper.zeroTier.model.UserNetwork
 import kill.online.helper.zeroTier.model.UserNetworkConfig
 import kill.online.helper.zeroTier.service.ZeroTierOneService
 import kill.online.helper.zeroTier.util.IPPacketUtils.getDestIP
-import kill.online.helper.zeroTier.util.IPPacketUtils.getIPVersion
 import kill.online.helper.zeroTier.util.IPPacketUtils.getSourceIP
 import kill.online.helper.zeroTier.util.IPPacketUtils.getUDPData
 import kill.online.helper.zeroTier.util.IPPacketUtils.handleUDPData
-import kill.online.helper.zeroTier.util.InetAddressUtils
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.math.BigInteger
 import java.net.InetSocketAddress
 
-@SuppressLint("StaticFieldLeak")
-class ZeroTierViewModel : ViewModel() {
+
+object ZeroTierViewModel : ViewModel() {
     private val TAG = "ZeroTierViewModel"
-    val appViewModel: AppViewModel = AppViewModel()
-    val isZTRunning = mutableStateOf(false)
+
+    @SuppressLint("StaticFieldLeak")
     private lateinit var ztService: ZeroTierOneService
+    val isZTRunning = mutableStateOf(false)
     private val ztConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(componentName: ComponentName, iBinder: IBinder) {
             this@ZeroTierViewModel.ztService =
@@ -58,15 +58,17 @@ class ZeroTierViewModel : ViewModel() {
         }
     }
 
-    private lateinit var ztNetworkConfig: List<UserNetworkConfig>
-    private lateinit var ztNetwork: List<UserNetwork>
-    private lateinit var appSetting: AppSetting
+    var ztNetworkConfig = mutableStateOf(listOf<UserNetworkConfig>())
+    var ztNetwork = mutableStateOf(listOf<UserNetwork>())
+    var ztMoon = mutableStateOf(listOf<Moon>())
+    var appSetting = mutableStateOf(AppSetting())
 
     val members = mutableStateOf(listOf<Member>())
-
     val rooms = mutableStateOf(listOf<Room>())
     val enteredRoom = mutableStateOf(Room())
+    val roomRule = mutableStateOf(listOf<Room.RoomRule>())
     val blacklist = mutableStateOf(listOf<Room.Member>())
+
 
     fun startZeroTier(context: Context) {
         val networkId: Long = BigInteger(getLastActivatedNetworkId(), 16).toLong()
@@ -123,6 +125,14 @@ class ZeroTierViewModel : ViewModel() {
     private fun getAssignedIP(): InetSocketAddress? =
         ztService.getVirtualNetworkConfig().assignedAddresses?.first()
 
+    fun getMyName(): String {
+        return members.value.firstOrNull {
+            it.config.ipAssignments.first() == getAssignedIP()?.address?.hostAddress
+        }?.name
+            ?: ""
+    }
+
+    fun getCheckedRuleIndex(): Int = roomRule.value.indexOfFirst { it.checked }
 
     private fun setGamePacketCallBack() {
         ztService.setOnHandleIPPacket { ipv4 ->
@@ -130,109 +140,171 @@ class ZeroTierViewModel : ViewModel() {
             val udpData = getUDPData(ipv4)
             val hexUdpData =
                 udpData.joinToString(separator = ", ") { "0x" + String.format("%02X", it) }
-            val ipVersion = getIPVersion(ipv4)
             val sourceAddress = getSourceIP(ipv4)?.hostAddress
             val destAddress = getDestIP(ipv4)?.hostAddress
-            val assignedIP = getAssignedIP()
-            val networkPrefix =
-                InetAddressUtils.addressToNetworkPrefix(assignedIP?.address, assignedIP?.port)
-            val gamePacketType = getPacketType(ipv4, networkPrefix)
             Log.i(
-                "GamePacketCallBack",
-                "hexIpv4: $hexIpv4\nudpData: $hexUdpData\nipVersion: $ipVersion sourceAddress: $sourceAddress destAddress: $destAddress gamePacketType: $gamePacketType"
+                TAG,
+                "setGamePacketCallBack: hexIpv4: $hexIpv4\nudpData: $hexUdpData\n sourceAddress: $sourceAddress destAddress: $destAddress"
             )
+            when {
+                //房主发出的包，发给本节点或房间广播
+                sourceAddress in rooms.value.map { it.roomOwnerIp } -> {
+                    val serverPacketType = getServerPacketType(ipv4)
+                    Log.i(TAG, "setGamePacketCallBack: serverPacketType: $serverPacketType")
+                    when (serverPacketType) {
+                        KillPacketType.ROOM_BROADCAST -> {
+                            onRoomBroadcast(ipv4)
+                        }
 
-            when (gamePacketType) {
-                KillPacketType.ROOM_BROADCAST -> {
-                    onRoomBroadcast(ipv4)
+                        KillPacketType.ENTER_ROOM_SUCCESS -> {
+                            onEnterRoomSuccess(ipv4)
+                        }
+
+                        KillPacketType.QUIT_ROOM_SUCCESS -> {
+                            onQuitRoomSuccess(ipv4)
+                        }
+
+                        else -> {
+                            ipv4
+                        }
+                    }
                 }
+                //成员发出的包，而且是本节点发出的
+                destAddress in rooms.value.map { it.roomOwnerIp } -> {
+                    val clientPacketType = getServerPacketType(ipv4)
+                    Log.i(TAG, "setGamePacketCallBack: clientPacketType: $clientPacketType")
+                    when (clientPacketType) {
+                        KillPacketType.REQUEST_ENTER_ROOM -> {
+                            onRequestEnterRoom(ipv4)
+                        }
 
-                KillPacketType.REQUEST_ENTER_ROOM -> {
-                    onRequestEnterRoom(ipv4)
-                }
+                        KillPacketType.REQUEST_QUIT_ROOM -> {
+                            onRequestQuitRoom(ipv4)
+                        }
 
-                KillPacketType.REPLY_ENTER_ROOM -> {
-                    onReplyEnterRoom(ipv4)
+                        else -> {
+                            ipv4
+                        }
+                    }
                 }
 
                 else -> {
                     ipv4
                 }
             }
-
         }
     }
 
     private fun onRoomBroadcast(ipv4: ByteArray): ByteArray {
-        val assignedIP = getAssignedIP()?.address?.hostAddress ?: ""
-        val sourceIP = getSourceIP(ipv4)?.hostAddress
+
+        val sourceIP = getSourceIP(ipv4)?.hostAddress ?: ""
+        val destIP = getDestIP(ipv4)?.hostAddress ?: ""
         val udpData = getUDPData(ipv4)
         val roomName = String(udpData.dropLast(1).toByteArray(), Charsets.UTF_8)
         val roomOwner = members.value.first {
             it.config.ipAssignments.first() == sourceIP
         }.name
-        //查找是否有相同的房间
+        //发出该包的房间索引
         val roomIndex = rooms.value.indexOfFirst { room -> room.roomOwnerIp == sourceIP }
-        //自己发出的广播
-        if (assignedIP == sourceIP) {
-            //没有找到相同的房间，说明是首次广播
-            if (roomIndex == -1) {
-                val newRoom = Room(
-                    roomName = if (appSetting.roomSetting.customRoomName) appSetting.roomSetting.roomName else "${roomOwner}的房间",
-                    roomOwner = roomOwner,
-                    roomOwnerIp = sourceIP ?: "",
-                    isPrivateRoom = appSetting.roomSetting.isPrivateRoom,
-                    roomPassword = appSetting.roomSetting.roomPassword,
-                    roomRule = appViewModel.roomRule.value.first { it.checked },
-                    state = Room.RoomState.WAITING,
-                    players = listOf(Room.Member(name = roomOwner, ip = sourceIP ?: ""))
-                )
-                //更新 enteredRoom
-                enteredRoom.value = newRoom
-                StateUtils.add(itemName = FileUtils.ItemName.Room, state = rooms, newItem = newRoom)
-            }
-            //找到相同的房间，说明是第二次发出广播，更新房间信息
-            else {
-                update(itemName = FileUtils.ItemName.Room, state = rooms, index = roomIndex) {
-                    it.roomName =
-                        if (appSetting.roomSetting.customRoomName) appSetting.roomSetting.roomName else "${roomOwner}的房间"
-                    it.roomOwner = roomOwner
-                    it.roomRule = appViewModel.roomRule.value.first { it.checked }
-                    it.isPrivateRoom = appSetting.roomSetting.isPrivateRoom
-                    it.copy()
+        getAssignedIP()?.hostName.let { myIp ->
+            when (myIp) {
+                //自己发出的广播
+                sourceIP -> {
+                    //没有找到相同的房间，说明是首次广播
+                    if (roomIndex == -1) {
+                        val newRoom = Room(
+                            roomName = if (appSetting.value.roomSetting.customRoomName) appSetting.value.roomSetting.roomName else "${roomOwner}的房间",
+                            roomOwner = roomOwner,
+                            roomOwnerIp = sourceIP ?: "",
+                            isPrivateRoom = appSetting.value.roomSetting.isPrivateRoom,
+                            roomPassword = appSetting.value.roomSetting.roomPassword,
+                            roomRule = roomRule.value.first { it.checked },
+                            state = Room.RoomState.WAITING,
+                            players = listOf(Room.Member(name = roomOwner, ip = sourceIP ?: ""))
+                        )
+                        //更新 enteredRoom
+                        enteredRoom.value = newRoom
+                        StateUtils.add(
+                            itemName = FileUtils.ItemName.Room,
+                            state = rooms,
+                            newItem = newRoom
+                        )
+                    }
+                    //找到相同的房间，说明是第二次发出广播，更新房间信息
+                    else {
+                        update(
+                            itemName = FileUtils.ItemName.Room,
+                            state = rooms,
+                            index = roomIndex
+                        ) {
+                            it.roomName =
+                                if (appSetting.value.roomSetting.customRoomName) appSetting.value.roomSetting.roomName else "${roomOwner}的房间"
+                            it.roomOwner = roomOwner
+                            it.roomRule = roomRule.value.first { it.checked }
+                            it.isPrivateRoom = appSetting.value.roomSetting.isPrivateRoom
+                            it.copy()
+                        }
+                        //更新 enteredRoom
+                        enteredRoom.value = rooms.value[roomIndex]
+                    }
+                    return handleUDPData(ipv4) {
+                        roomObjectToName(rooms.value.first { room -> room.roomOwnerIp == sourceIP }).toByteArray() + listOf<Byte>(
+                            0x00
+                        ).toByteArray()
+                    }
                 }
-                //更新 enteredRoom
-                enteredRoom.value = rooms.value[roomIndex]
-            }
-            return handleUDPData(ipv4) {
-                roomObjectToName(rooms.value.first { room -> room.roomOwnerIp == sourceIP }).toByteArray() + listOf<Byte>(
-                    0x00
-                ).toByteArray()
-            }
-        }
-        //别人发出的广播
-        else {
-            val newRoom = roomNameToObject(roomName)
-            //找到相同的房间，说明是第一次收到别人发出的广播
-            if (roomIndex == -1) {
-                newRoom.roomOwnerIp = sourceIP ?: ""
-                newRoom.players = listOf(Room.Member(name = roomOwner, ip = sourceIP ?: ""))
-                StateUtils.add(itemName = FileUtils.ItemName.Room, state = rooms, newItem = newRoom)
+                //别人发出的广播
+                destIP -> {
+                    val newRoom = roomNameToObject(roomName)
+                    //找到相同的房间，说明是第一次收到别人发出的广播
+                    if (roomIndex == -1) {
+                        newRoom.roomOwnerIp = sourceIP ?: ""
+                        newRoom.players = listOf(Room.Member(name = roomOwner, ip = sourceIP ?: ""))
+                        StateUtils.add(
+                            itemName = FileUtils.ItemName.Room,
+                            state = rooms,
+                            newItem = newRoom
+                        )
 
-            }
-            //找到相同的房间，说明是第二次收到别人发出的广播，更新房间信息
-            else {
-                update(itemName = FileUtils.ItemName.Room, state = rooms, index = roomIndex) {
-                    it.roomName = newRoom.roomName
-                    it.roomOwner = newRoom.roomOwner
-                    it.roomRule = newRoom.roomRule
-                    it.state = newRoom.state
-                    it.isPrivateRoom = newRoom.isPrivateRoom
-                    it.copy()
+                    }
+                    //找到相同的房间，说明是第二次收到别人发出的广播，更新房间信息
+                    else {
+                        update(
+                            itemName = FileUtils.ItemName.Room,
+                            state = rooms,
+                            index = roomIndex
+                        ) {
+                            it.roomName = newRoom.roomName
+                            it.roomOwner = newRoom.roomOwner
+                            it.roomRule = newRoom.roomRule
+                            it.state = newRoom.state
+                            it.isPrivateRoom = newRoom.isPrivateRoom
+                            it.copy()
+                        }
+                    }
                 }
+
+                else -> {}
             }
-            return ipv4
         }
+        return ipv4
+    }
+
+    //TODO 哪位成员加入房间的内容可能在游戏数据部分需要解析
+    private fun onEnterRoomSuccess(ipv4: ByteArray): ByteArray {
+        val destIP = getDestIP(ipv4)?.hostAddress ?: ""
+        val playerName =
+            members.value.first { member -> member.config.ipAssignments.first() == destIP }.name
+        enteredRoom.value.players += Room.Member(name = playerName, ip = destIP)
+        return ipv4
+    }
+
+    //TODO 哪位成员退出房间的内容可能在游戏数据部分需要解析
+    private fun onQuitRoomSuccess(ipv4: ByteArray): ByteArray {
+        val destIP = getDestIP(ipv4)?.hostAddress ?: ""
+        val player = enteredRoom.value.players.first { player -> player.ip == destIP }
+        enteredRoom.value.players -= player
+        return ipv4
     }
 
     private fun onRequestEnterRoom(ipv4: ByteArray): ByteArray {
@@ -240,135 +312,202 @@ class ZeroTierViewModel : ViewModel() {
         listOf<Byte>(-1, -1, -1, -1).toByteArray().copyInto(wrongIpv4, 12)
         val sourceIP = getSourceIP(ipv4)?.hostAddress ?: ""
         val destIP = getDestIP(ipv4)?.hostAddress ?: ""
-        getAssignedIP()?.hostName.let { it ->
-            //如果是自己发出的请求，自己请求加入别人的房间
-            if (it == sourceIP) {
-                val room = rooms.value.firstOrNull { room -> room.roomOwnerIp == sourceIP }
-                room?.let {
-                    return handleUDPData(ipv4) { udp -> udp + it.roomPassword.toByteArray() }
+        getAssignedIP()?.hostName.let { myIp ->
+            when (myIp) {
+                //本节点为房主，收到请求包，成员请求加入房间
+                destIP -> {
+
+                    //启用黑名单并且在黑名单里，使数据包无效
+                    if (appSetting.value.roomSetting.enableBlackList &&
+                        sourceIP in blacklist.value.map { it.ip }
+                    ) {
+                        return wrongIpv4
+                    }
+                    //是否开启了密码房
+                    if (appSetting.value.roomSetting.isPrivateRoom) {
+                        val password =
+                            ipv4.drop(ipv4.size - appSetting.value.roomSetting.roomPassword.length)
+                        //密码错误，使数据包无效
+                        return if (!password.toByteArray()
+                                .contentEquals(appSetting.value.roomSetting.roomPassword.toByteArray())
+                        ) wrongIpv4
+                        //密码正确，使数据包有效
+                        else ipv4.dropLast(appSetting.value.roomSetting.roomPassword.length)
+                            .toByteArray()
+                    }
+                    //未开启密码房，使数据包有效--->不处理
+                    else {
+                    }
                 }
-            }
-            //如果是别人发出的请求，别人请求加入自己的房间
-            else {
-                //在黑名单里，使数据包无效
-                if (sourceIP in blacklist.value.map { it.ip }) {
-                    return wrongIpv4
+                //本节点为成员，向房主发出包，请求加入房间
+                sourceIP -> {
+                    val room = rooms.value.firstOrNull { room -> room.roomOwnerIp == sourceIP }
+                    room?.let {
+                        return handleUDPData(ipv4) { udp -> udp + it.roomPassword.toByteArray() }
+                    }
                 }
-                //是否开启了密码房
-                if (appSetting.roomSetting.isPrivateRoom) {
-                    val password = ipv4.drop(ipv4.size - appSetting.roomSetting.roomPassword.length)
-                    //密码错误，使数据包无效
-                    return if (!password.toByteArray()
-                            .contentEquals(appSetting.roomSetting.roomPassword.toByteArray())
-                    ) wrongIpv4
-                    //密码正确，使数据包有效
-                    else ipv4.dropLast(appSetting.roomSetting.roomPassword.length).toByteArray()
-                } else {
-                }
+
+                else -> {}
             }
         }
         return ipv4
     }
 
-    private fun onReplyEnterRoom(ipv4: ByteArray): ByteArray {
-        val sourceIP = getSourceIP(ipv4)?.hostAddress ?: ""
-        val destIP = getDestIP(ipv4)?.hostAddress ?: ""
-        //查找是否有相同的房间
-        val room = rooms.value.first { room -> room.roomOwnerIp == sourceIP }
-        getAssignedIP()?.hostName.let { it ->
-            //如果是别人发出的请求，别人同意自己加入其房间，更新 enteredRoom
-            if (it == destIP) enteredRoom.value = room
-        }
+    private fun onRequestQuitRoom(ipv4: ByteArray): ByteArray {
         return ipv4
-    }
-
-
-    fun loadZTConfig(context: Context) {
-        ztNetworkConfig = FileUtils.read(
-            context = context,
-            dataType = FileUtils.DataType.Json,
-            itemName = FileUtils.ItemName.NetworkConfig,
-            defValue = listOf()
-        )
-        ztNetwork = FileUtils.read(
-            context = context,
-            dataType = FileUtils.DataType.Json,
-            itemName = FileUtils.ItemName.Network,
-            defValue = listOf()
-        )
-        appSetting = FileUtils.read(
-            context = context,
-            dataType = FileUtils.DataType.Json,
-            itemName = FileUtils.ItemName.AppSetting,
-            defValue = AppSetting()
-        )
-        Log.i(TAG, "loadZTConfig: succeed to load ztNetworkConfig ztNetwork appSetting")
     }
 
     fun getLastActivatedNetworkId(): String {
-        return ztNetwork.first {
+        return ztNetwork.value.first {
             it.lastActivated
         }.networkId
     }
 
-    private fun saveZTConfig(context: Context) {
-        FileUtils.write(
-            context = context,
+    fun loadZTConfig() {
+        ztNetworkConfig.value = FileUtils.read(
             dataType = FileUtils.DataType.Json,
             itemName = FileUtils.ItemName.NetworkConfig,
-            content = ztNetworkConfig
+            defValue = listOf()
         )
-        FileUtils.write(
-            context = context,
+        ztNetwork.value = FileUtils.read(
             dataType = FileUtils.DataType.Json,
             itemName = FileUtils.ItemName.Network,
-            content = ztNetwork
+            defValue = listOf()
         )
-        FileUtils.write(
-            context = context,
+        ztMoon.value = FileUtils.read(
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.Moon,
+            defValue = listOf()
+        )
+        appSetting.value = FileUtils.read(
             dataType = FileUtils.DataType.Json,
             itemName = FileUtils.ItemName.AppSetting,
-            content = appSetting
+            defValue = AppSetting()
         )
-        Log.i(TAG, "saveZTConfig: succeed to save ztNetworkConfig ztNetwork appSetting")
+        roomRule.value = FileUtils.read(
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.RoomRule,
+            defValue = listOf()
+        )
+        blacklist.value = FileUtils.read(
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.Blacklist,
+            defValue = listOf()
+        )
+
+        Log.i(
+            TAG,
+            "loadZTConfig: succeed to load ztNetworkConfig ztNetwork ztMoon appSetting roomRule blacklist"
+        )
     }
 
-    fun initZTConfig(context: Context) {
+    fun initZTConfig() {
         if (!FileUtils.isExist(
-                context = context, itemName = FileUtils.ItemName.NetworkConfig
+                itemName = FileUtils.ItemName.NetworkConfig
             )
         ) {
             FileUtils.write(
-                context = context,
                 dataType = FileUtils.DataType.Json,
                 itemName = FileUtils.ItemName.NetworkConfig,
                 content = listOf(UserNetworkConfig("a09acf02339ffab1")),
             )
         }
         if (!FileUtils.isExist(
-                context = context, itemName = FileUtils.ItemName.Network
+                itemName = FileUtils.ItemName.Network
             )
         ) {
             FileUtils.write(
-                context = context,
                 dataType = FileUtils.DataType.Json,
                 itemName = FileUtils.ItemName.Network,
                 content = listOf(UserNetwork("a09acf02339ffab1", lastActivated = true)),
             )
         }
         if (!FileUtils.isExist(
-                context = context, itemName = FileUtils.ItemName.AppSetting
+                itemName = FileUtils.ItemName.Moon
             )
         ) {
             FileUtils.write(
-                context = context,
+                dataType = FileUtils.DataType.Json,
+                itemName = FileUtils.ItemName.Moon,
+                content = listOf<Moon>(),
+            )
+        }
+        if (!FileUtils.isExist(
+                itemName = FileUtils.ItemName.AppSetting
+            )
+        ) {
+            FileUtils.write(
                 dataType = FileUtils.DataType.Json,
                 itemName = FileUtils.ItemName.AppSetting,
                 content = AppSetting()
             )
         }
+        if (!FileUtils.isExist(
+                itemName = FileUtils.ItemName.RoomRule
+            )
+        ) {
+            FileUtils.write(
+                dataType = FileUtils.DataType.Json,
+                itemName = FileUtils.ItemName.RoomRule,
+                content = listOf(
+                    Room.RoomRule("标准", "素将局"),
+                    Room.RoomRule("标准", "阴间局")
+                )
+            )
+        }
+        if (!FileUtils.isExist(
+                itemName = FileUtils.ItemName.Blacklist
+            )
+        ) {
+            FileUtils.write(
+                dataType = FileUtils.DataType.Json,
+                itemName = FileUtils.ItemName.Blacklist,
+                content = listOf<Room.Member>()
+            )
+        }
 
-        Log.i(TAG, "initZTConfig: succeed to init ztNetworkConfig ztNetwork appSetting")
+        Log.i(
+            TAG,
+            "initZTConfig: succeed to init ztNetworkConfig ztNetwork ztMoon appSetting roomRule blacklist"
+        )
+    }
+
+    private fun saveZTConfig() {
+        FileUtils.write(
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.NetworkConfig,
+            content = ztNetworkConfig.value
+        )
+        FileUtils.write(
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.Network,
+            content = ztNetwork.value
+        )
+        FileUtils.write(
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.Moon,
+            content = ztMoon.value
+        )
+
+        FileUtils.write(
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.AppSetting,
+            content = appSetting.value
+        )
+        FileUtils.write(
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.RoomRule,
+            content = roomRule.value
+        )
+        FileUtils.write(
+            dataType = FileUtils.DataType.Json,
+            itemName = FileUtils.ItemName.Blacklist,
+            content = blacklist.value
+        )
+        Log.i(
+            TAG,
+            "saveZTConfig: succeed to save ztNetworkConfig ztNetwork ztMoon appSetting roomRule blacklist"
+        )
     }
 
     private fun updateNetworkStatus(
@@ -377,7 +516,7 @@ class ZeroTierViewModel : ViewModel() {
         networkName: String? = null,
         lastActivated: Boolean? = null,
     ) {
-        ztNetwork.first {
+        ztNetwork.value.first {
             it.networkId == networkId
         }.let { net ->
             networkName?.run { net.networkName = networkName }
@@ -385,7 +524,7 @@ class ZeroTierViewModel : ViewModel() {
 
         }
         Log.i(TAG, "updateNetworkStatus: start to saveZTConfig")
-        saveZTConfig(context)
+        saveZTConfig()
     }
 
     fun getMembers(networkID: String) {

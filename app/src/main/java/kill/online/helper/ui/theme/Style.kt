@@ -37,3 +37,6 @@ val FloatingWindowPadding = 10.dp
 
 //ime
 val imePadding = 230.dp
+
+//emoji
+val emojiSize = 200.dp

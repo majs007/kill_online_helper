@@ -24,8 +24,7 @@ import java.util.concurrent.TimeUnit
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PlayerContent(
-    navController: NavHostController,
-    playerListState: LazyListState = rememberLazyListState()
+    navController: NavHostController, playerListState: LazyListState = rememberLazyListState()
 ) {
     val ztViewModel: ZeroTierViewModel = viewModel()
     val state = rememberUltraSwipeRefreshState()
@@ -44,7 +43,7 @@ fun PlayerContent(
     UltraSwipeRefresh(
         state = state,
         onRefresh = { state.isRefreshing = true },
-        onLoadMore = { state.isLoading = true },
+        onLoadMore = {},
         modifier = Modifier,
         headerScrollMode = NestedScrollMode.Translate,
         footerScrollMode = NestedScrollMode.Translate,
@@ -57,64 +56,55 @@ fun PlayerContent(
 
                 when {
                     dayNumber == 0 && milliseconds < 60 * 1000 -> {
-                        BasicItemContainer(
-                            icon = "🥳",
+                        BasicItemContainer(icon = "🥳",
                             text = { item.name },
                             subText = { "状态：在线" })
                     }
 
                     dayNumber == 0 -> {
-                        BasicItemContainer(
-                            icon = "🥰",
+                        BasicItemContainer(icon = "🥰",
                             text = { item.name },
                             subText = { "状态：${dayNumber + 1}天内" })
                     }
 
                     dayNumber == 1 -> {
-                        BasicItemContainer(
-                            icon = "😎",
+                        BasicItemContainer(icon = "😎",
                             text = { item.name },
                             subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 2 -> {
-                        BasicItemContainer(
-                            icon = "😶",
+                        BasicItemContainer(icon = "😶",
                             text = { item.name },
                             subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 3 -> {
-                        BasicItemContainer(
-                            icon = "😐",
+                        BasicItemContainer(icon = "😐",
                             text = { item.name },
                             subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 4 -> {
-                        BasicItemContainer(
-                            icon = "🤔",
+                        BasicItemContainer(icon = "🤔",
                             text = { item.name },
                             subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 5 -> {
-                        BasicItemContainer(
-                            icon = "😕",
+                        BasicItemContainer(icon = "😕",
                             text = { item.name },
                             subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 6 -> {
-                        BasicItemContainer(
-                            icon = "😥",
+                        BasicItemContainer(icon = "😥",
                             text = { item.name },
                             subText = { "状态：${dayNumber}天前" })
                     }
 
                     dayNumber == 7 -> {
-                        BasicItemContainer(
-                            icon = "😖",
+                        BasicItemContainer(icon = "😖",
                             text = { item.name },
                             subText = { "状态：${dayNumber}天前" })
                     }
@@ -124,8 +114,7 @@ fun PlayerContent(
                     }
 
                     else -> {
-                        BasicItemContainer(
-                            icon = "😭",
+                        BasicItemContainer(icon = "😭",
                             text = { item.name },
                             subText = { "状态：${dayNumber}天前" })
                     }

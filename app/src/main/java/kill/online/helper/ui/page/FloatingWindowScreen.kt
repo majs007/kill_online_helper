@@ -1,9 +1,14 @@
 package kill.online.helper.ui.page
 
+import android.graphics.Rect
 import android.os.Build
+import android.util.Base64
+import android.util.Log
 import androidx.activity.OnBackPressedDispatcherOwner
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -28,19 +33,23 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.rememberNavController
 import kill.online.helper.route.FWdNavigation
 import kill.online.helper.route.Route
 import kill.online.helper.route.floatingWindowNavItem
 import kill.online.helper.route.floatingWindowTopBarTitle
+import kill.online.helper.ui.theme.emojiSize
 import kill.online.helper.ui.theme.floatingWindowBackgroundAlpha
 import kill.online.helper.ui.theme.floatingWindowBarAlpha
 import kill.online.helper.ui.theme.floatingWindowCorner
@@ -49,14 +58,19 @@ import kill.online.helper.ui.theme.floatingWindowWidth
 import kill.online.helper.ui.theme.topAppBarActionPadding
 import kill.online.helper.ui.window.ComposeFloatingWindow
 import kill.online.helper.ui.window.FloatingWindowFactory
-import kill.online.helper.ui.window.dragFloatingWindow
+import kill.online.helper.utils.dragFloatingWindow
+import kill.online.helper.utils.toPainter
+import kill.online.helper.viewModel.AppViewModel
+import kotlinx.coroutines.delay
 
-@RequiresApi(Build.VERSION_CODES.P)
+
 @OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.P)
 @Composable
 fun FloatingWindowScreen(
     fw: ComposeFloatingWindow,
-    onBackPressedDispatcherOwner: OnBackPressedDispatcherOwner?
+    onBackPressedDispatcherOwner: OnBackPressedDispatcherOwner?,
+    appViewModel: AppViewModel = viewModel(),
 ) {
     val floatingWindowNavController = rememberNavController()
     var selectedItem by remember { mutableStateOf(Route.messageFW.value) }
@@ -118,14 +132,18 @@ fun FloatingWindowScreen(
                             )
                         }
                     },
-                    modifier = Modifier.dragFloatingWindow()
+                    modifier = Modifier.dragFloatingWindow { windowOffset ->
+                        appViewModel.toScreenOffset = windowOffset
+                    }
                 )
             },
             bottomBar = {
                 BottomAppBar(
                     contentColor = Color.White,
                     containerColor = Color.Black.copy(floatingWindowBarAlpha),
-                    modifier = Modifier.dragFloatingWindow()
+                    modifier = Modifier.dragFloatingWindow { windowOffset ->
+                        appViewModel.toScreenOffset = windowOffset
+                    }
                 ) {
                     floatingWindowNavItem.forEachIndexed { index, item ->
                         NavigationBarItem(
@@ -169,6 +187,56 @@ fun FloatingWindowScreen(
         ) {
             val topAppBarPadding = it.calculateTopPadding()
             val bottomAppBarPadding = it.calculateBottomPadding()
+            val floatingImg =
+                FloatingWindowFactory.getFloatingWindow(
+                    "floatingImg",
+                    content = { fb ->
+                        LaunchedEffect(appViewModel.receivedImg.timeStamp) {
+                            delay(2000)
+                            fb.hide()
+                        }
+                        val img = Base64.decode(
+                            appViewModel.receivedImg.msg,
+                            Base64.DEFAULT
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(emojiSize)
+                                .clipToBounds()
+                        ) {
+                            Image(img.toPainter(), contentDescription = null)
+                        }
+                    },
+                    config = { fb ->
+                        fb.setCallback(
+                            onShow = {
+//                                showToast(context, "显示悬浮窗")
+                                Log.i("onShow", "floatingImg")
+                            },
+                            onHide = {
+//                                showToast(context, "隐藏悬浮窗")
+                                Log.i("onHide", "floatingImg")
+
+                            }
+                        )
+                            .setLayoutParams { params ->
+                                val decorView = fb.decorView
+                                val f = Rect().also { rect ->
+                                    decorView.getWindowVisibleDisplayFrame(rect)
+                                }
+                                if (appViewModel.receivedImg.isDrag) {
+                                    params.x =
+                                        (f.width() * appViewModel.receivedImg.imagePositionRadio.x).toInt()
+                                    params.y =
+                                        (f.height() * appViewModel.receivedImg.imagePositionRadio.y).toInt()
+                                } else {
+                                    params.x = (f.width() - fb.contentWidth) / 2
+                                    params.y = (f.height() - fb.contentHeight) / 2
+                                }
+
+                            }
+                    })
+            LaunchedEffect(key1 = appViewModel.receivedImg.timeStamp) { floatingImg.show() }
             Column(
                 modifier = Modifier
                     .padding(top = topAppBarPadding, bottom = bottomAppBarPadding)
