@@ -86,7 +86,10 @@ data object AppSettingItem {
     const val AUTO_PLAY_AUDIO = "自动播放音频"
     const val MANAGE_EMOJI = "管理表情包"
 
-    const val ABOUT = "关于"
+    const val OTHER = "其他"
+    const val DEVELOPER = "开发者"
+    const val HELP = "帮助"
+    const val OPEN_SOURCE = "开源许可"
     const val CHECK_UPDATE = "检查更新"
 }
 

@@ -26,6 +26,7 @@ android {
         ndk {
             abiFilters.addAll(listOf("arm64-v8a", "x86_64"))
         }
+        buildConfigField("long", "BUILD_TIME", "${System.currentTimeMillis()}")
     }
 
     buildTypes {
@@ -79,6 +80,9 @@ dependencies {
     implementation("com.github.jenly1314.UltraSwipeRefresh:refresh:1.1.1")
     implementation("com.github.jenly1314.UltraSwipeRefresh:refresh-indicator-lottie:1.1.1")
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.halilibo.compose-richtext:richtext-commonmark:0.20.0")
+    implementation("com.halilibo.compose-richtext:richtext-ui-material3:0.20.0")
+    implementation("com.airbnb.android:lottie-compose:6.4.0")
 
     testImplementation("junit:junit:4.13.2")
 

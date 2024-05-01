@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">kill联机助手</string>
+    <string name="about_author">作者</string>
+    <string name="about_app_description">kill联机助手是一款基于ZeroTier的联机助手，可以在公网建立虚拟局域网，帮助玩家快速连接到ZeroTier网络，实现远程联机</string>
+
     // zeroTier
     <string name="button_connect">Connect</string>
     <string name="button_disconnect">Disconnect</string>

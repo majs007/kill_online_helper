@@ -14,12 +14,14 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import kill.online.helper.ui.page.AboutScreen
 import kill.online.helper.ui.page.AppScreen
+import kill.online.helper.ui.page.DeveloperScreen
 import kill.online.helper.ui.page.FloatingWindowMemberContent
 import kill.online.helper.ui.page.FloatingWindowMessageContent
 import kill.online.helper.ui.page.FloatingWindowSettingContent
+import kill.online.helper.ui.page.HelpScreen
 import kill.online.helper.ui.page.HomeContent
+import kill.online.helper.ui.page.OpenSourceScreen
 import kill.online.helper.ui.page.PlayerContent
 import kill.online.helper.ui.page.RuleContent
 import kill.online.helper.ui.page.SettingsContent
@@ -30,7 +32,9 @@ sealed class Route(val value: String) {
     data object player : Route("player")
     data object rule : Route("rule")
     data object setting : Route("setting")
-    data object about : Route("setting/about")
+    data object developer : Route("setting/developer")
+    data object help : Route("setting/help")
+    data object openSource : Route("setting/openSource")
     data object messageFW : Route("messageFW")
     data object memberFW : Route("memberFW")
     data object settingFW : Route("settingFW")
@@ -73,11 +77,25 @@ fun Navigation(appNavController: NavHostController) {
                 AppScreen(appNavController)
             }
         }
-        composable(Route.about.value) {
+        composable(Route.developer.value) {
             CompositionLocalProvider(
                 LocalViewModelStoreOwner provides viewModelStoreOwner
             ) {
-                AboutScreen(appNavController)
+                DeveloperScreen(appNavController)
+            }
+        }
+        composable(Route.help.value) {
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                HelpScreen(appNavController)
+            }
+        }
+        composable(Route.openSource.value) {
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                OpenSourceScreen(appNavController)
             }
         }
     }

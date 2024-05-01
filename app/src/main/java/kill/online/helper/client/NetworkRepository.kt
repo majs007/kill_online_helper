@@ -19,10 +19,10 @@ object NetworkRepository {
     private val zeroInterceptor = Interceptor { chain ->
         val request = chain.request()
         val requestBuilder = request.newBuilder()
-        val url = request.url()
+        val url = request.url
         val builder = url.newBuilder()
         requestBuilder.url(builder.build())
-            .method(request.method(), request.body())
+            .method(request.method, request.body)
             .addHeader("clientType", "android")
             .addHeader("Content-Type", "application/json")
             .addHeader("Authorization", token)
@@ -31,10 +31,10 @@ object NetworkRepository {
     private val appInterceptor = Interceptor { chain ->
         val request = chain.request()
         val requestBuilder = request.newBuilder()
-        val url = request.url()
+        val url = request.url
         val builder = url.newBuilder()
         requestBuilder.url(builder.build())
-            .method(request.method(), request.body())
+            .method(request.method, request.body)
             .addHeader("clientType", "android")
             .addHeader("Content-Type", "application/json")
         chain.proceed(requestBuilder.build())

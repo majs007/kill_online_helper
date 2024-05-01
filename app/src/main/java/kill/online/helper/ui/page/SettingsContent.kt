@@ -4,16 +4,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoMode
 import androidx.compose.material.icons.filled.CellTower
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EmojiEmotions
-import androidx.compose.material.icons.filled.HeartBroken
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.NotInterested
+import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material.icons.outlined.EmojiEmotions
+import androidx.compose.material.icons.outlined.HeartBroken
+import androidx.compose.material.icons.outlined.Help
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
@@ -28,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import kill.online.helper.data.AppSettingItem
+import kill.online.helper.route.Route
 import kill.online.helper.ui.components.BasicItemContainer
 import kill.online.helper.ui.components.SwitchItemContainer
 import kill.online.helper.ui.components.Title
@@ -127,7 +130,7 @@ fun SettingsContent(
                         it.copy()
                     }
                 },
-                icon = Icons.Filled.HeartBroken,
+                icon = Icons.Outlined.HeartBroken,
                 iconEnabled = true,
                 text = { AppSettingItem.BLACK_LIST },
                 subText = { "\"我们好像已经渐行渐远了\"" },
@@ -145,24 +148,34 @@ fun SettingsContent(
                         it.copy()
                     }
                 },
-                icon = Icons.Filled.AutoMode,
+                icon = Icons.Filled.PlayCircleOutline,
                 iconEnabled = true,
                 text = { AppSettingItem.AUTO_PLAY_AUDIO },
                 subText = { "若关闭则需点击播放语音消息" },
 
                 )
             BasicItemContainer(
-                icon = Icons.Filled.EmojiEmotions,
+                icon = Icons.Outlined.EmojiEmotions,
                 text = { AppSettingItem.MANAGE_EMOJI },
                 onClick = { /*TODO 表情包管理界面*/ },
             )
         }
         item {
-            Title(text = { AppSettingItem.ABOUT })
+            Title(text = { AppSettingItem.OTHER })
             BasicItemContainer(
                 icon = Icons.Filled.Code,
-                text = { AppSettingItem.ABOUT },
-                onClick = { /*TODO 关于界面*/ },
+                text = { AppSettingItem.DEVELOPER },
+                onClick = { appNavController.navigate(Route.developer.value) },
+            )
+            BasicItemContainer(
+                icon = Icons.Outlined.Help,
+                text = { AppSettingItem.HELP },
+                onClick = { appNavController.navigate(Route.help.value) },
+            )
+            BasicItemContainer(
+                icon = Icons.Filled.WorkspacePremium,
+                text = { AppSettingItem.OPEN_SOURCE },
+                onClick = { appNavController.navigate(Route.openSource.value) },
             )
             BasicItemContainer(
                 icon = Icons.Filled.Update,
