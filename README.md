@@ -2,9 +2,9 @@
 
 ## 简介
 
-<div style="text-align: center;">
+<p align="center">
     <img src="./img/app_logo.png" alt="kill联机助手" width="150"/>
-</div>
+</p>
 kill联机助手基于zerotier的网络组网，可以使kill联机玩家同处于一个虚拟局域网内，实现局域网联机。在此基础之上，还专门为联机玩家提供了一些有趣的功能。
 
 ## 基础功能
