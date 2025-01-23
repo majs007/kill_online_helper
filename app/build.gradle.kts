@@ -17,7 +17,7 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -33,8 +33,7 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
     }
@@ -77,13 +76,16 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.4.0")
     implementation("com.squareup.retrofit2:converter-gson:2.1.0")
     implementation("org.nanohttpd:nanohttpd:2.3.1")
-    implementation("com.github.jenly1314.UltraSwipeRefresh:refresh:1.1.1")
-    implementation("com.github.jenly1314.UltraSwipeRefresh:refresh-indicator-lottie:1.1.1")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.halilibo.compose-richtext:richtext-commonmark:0.20.0")
     implementation("com.halilibo.compose-richtext:richtext-ui-material3:0.20.0")
     implementation("com.airbnb.android:lottie-compose:6.4.0")
+    implementation("com.google.accompanist:accompanist-drawablepainter:0.35.0-alpha")
 
+
+
+
+    implementation("androidx.test:runner:1.5.2")
     testImplementation("junit:junit:4.13.2")
 
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

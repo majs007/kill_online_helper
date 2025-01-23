@@ -18,6 +18,7 @@ import java.io.StringWriter
  * Zerotier 文件数据源
  */
 class DataStore(private val context: Context) : DataStoreGetListener, DataStorePutListener {
+
     override fun onDataStorePut(name: String, buffer: ByteArray, secure: Boolean): Int {
         Log.d(TAG, "Writing File: " + name + ", to: " + context.filesDir)
         // 保护自定义 Planet 文件
@@ -117,7 +118,7 @@ class DataStore(private val context: Context) : DataStoreGetListener, DataStoreP
     /**
      * 判断自定义 Planet 文件
      */
-    fun hookPlanetFile(name: String): Boolean {
+    private fun hookPlanetFile(name: String): Boolean {
         return if (Constants.FILE_PLANET == name) {
             PreferenceManager
                 .getDefaultSharedPreferences(context)

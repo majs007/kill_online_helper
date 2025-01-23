@@ -126,6 +126,56 @@ fun BasicItemContainer(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(modifier = Modifier.width(25.dp))
+                Text(
+                    text = icon,
+                    fontSize = 25.sp,
+                    modifier = Modifier.clickable(enabled = iconEnabled, onClick = onIconClicked)
+                )
+                Spacer(modifier = Modifier.width(20.dp))
+                Column {
+                    Text(text = text(), style = MaterialTheme.typography.bodyLarge)
+                    subText?.let {
+                        Text(
+                            text = it(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(25.dp))
+            }
+            if (tailContent != {}) tailContent()
+        }
+    }
+}
+
+@Composable
+fun PeerItemContainer(
+    icon: String,
+    onIconClicked: () -> Unit = {},
+    iconEnabled: Boolean = false,
+    text: @Composable () -> String,
+    subText: (@Composable () -> String)? = null,
+    onClick: () -> Unit = {},
+    tailContent: @Composable () -> Unit = {},
+    padding: PaddingValues = PaddingValues(vertical = 15.dp),
+    enable: Boolean = true
+) {
+    Row(modifier = Modifier
+        .clickable { if (enable) onClick() }
+        .fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
                 modifier = Modifier
                     .zIndex(1F)
                     .fillMaxWidth(0.75F),

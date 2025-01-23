@@ -1,12 +1,12 @@
 package kill.online.helper.route
 
+import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -21,10 +21,14 @@ import kill.online.helper.ui.page.FloatingWindowMessageContent
 import kill.online.helper.ui.page.FloatingWindowSettingContent
 import kill.online.helper.ui.page.HelpScreen
 import kill.online.helper.ui.page.HomeContent
+import kill.online.helper.ui.page.MoonSettingScreen
 import kill.online.helper.ui.page.OpenSourceScreen
-import kill.online.helper.ui.page.PlayerContent
+import kill.online.helper.ui.page.PeerContent
 import kill.online.helper.ui.page.RuleContent
 import kill.online.helper.ui.page.SettingsContent
+import kill.online.helper.ui.page.StickerManageScreen
+import kill.online.helper.viewModel.AppViewModel
+import kill.online.helper.viewModel.ZeroTierViewModel
 
 sealed class Route(val value: String) {
     data object app : Route("app")
@@ -32,6 +36,8 @@ sealed class Route(val value: String) {
     data object player : Route("player")
     data object rule : Route("rule")
     data object setting : Route("setting")
+    data object moonSetting : Route("setting/moonSetting")
+    data object stickerManage : Route("setting/stickerManage")
     data object developer : Route("setting/developer")
     data object help : Route("setting/help")
     data object openSource : Route("setting/openSource")
@@ -48,26 +54,24 @@ val floatingWindowNavItem =
 val floatingWindowTopBarTitle = listOf("房间聊天", "房间成员", "设置")
 
 
-@RequiresApi(Build.VERSION_CODES.P)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
-fun Navigation(appNavController: NavHostController) {
+fun Navigation(
+    appNavController: NavHostController,
+    sharedText: String? = null,
+    sharedUri: Uri? = null
+) {
     val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) {
         "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"
     }
     NavHost(
         navController = appNavController,
-        startDestination = Route.app.value,
+        startDestination = if (sharedText == null && sharedUri == null) Route.app.value else Route.stickerManage.value,
         popEnterTransition = {
-            expandHorizontally(
-                animationSpec = tween(durationMillis = 200, easing = LinearEasing),
-                clip = false
-            )
+            slideInHorizontally(tween(durationMillis = 300, easing = FastOutLinearInEasing))
         },
         popExitTransition = {
-            shrinkHorizontally(
-                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
-                clip = false
-            )
+            slideOutHorizontally(tween(durationMillis = 300, easing = FastOutLinearInEasing))
         },
     ) {
         composable(Route.app.value) {
@@ -75,6 +79,24 @@ fun Navigation(appNavController: NavHostController) {
                 LocalViewModelStoreOwner provides viewModelStoreOwner
             ) {
                 AppScreen(appNavController)
+            }
+        }
+        composable(Route.moonSetting.value) {
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                MoonSettingScreen(appNavController)
+            }
+        }
+        composable(Route.stickerManage.value) {
+            CompositionLocalProvider(
+                LocalViewModelStoreOwner provides viewModelStoreOwner
+            ) {
+                StickerManageScreen(
+                    appNavController,
+                    sharedText = sharedText,
+                    sharedUri = sharedUri
+                )
             }
         }
         composable(Route.developer.value) {
@@ -102,7 +124,7 @@ fun Navigation(appNavController: NavHostController) {
 }
 
 
-@RequiresApi(Build.VERSION_CODES.O)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun ScaffoldNavigation(
     appNavController: NavHostController, scaffoldNavController: NavHostController
@@ -111,23 +133,16 @@ fun ScaffoldNavigation(
         "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"
     }
     val roomListState = rememberLazyListState()
-    val playerListState = rememberLazyListState()
     val ruleListState = rememberLazyListState()
     val settingListState = rememberLazyListState()
     NavHost(
         navController = scaffoldNavController,
         startDestination = Route.home.value,
         popEnterTransition = {
-            expandHorizontally(
-                animationSpec = tween(durationMillis = 200, easing = LinearEasing),
-                clip = false
-            )
+            slideInHorizontally(tween(durationMillis = 300, easing = FastOutLinearInEasing))
         },
         popExitTransition = {
-            shrinkHorizontally(
-                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
-                clip = false
-            )
+            slideOutHorizontally(tween(durationMillis = 300, easing = FastOutLinearInEasing))
         }
     ) {
 
@@ -142,7 +157,7 @@ fun ScaffoldNavigation(
             CompositionLocalProvider(
                 LocalViewModelStoreOwner provides viewModelStoreOwner
             ) {
-                PlayerContent(scaffoldNavController, playerListState)
+                PeerContent(scaffoldNavController)
             }
         }
         composable(Route.rule.value) {
@@ -163,9 +178,12 @@ fun ScaffoldNavigation(
 }
 
 
+@RequiresApi(Build.VERSION_CODES.P)
 @Composable
 fun FWdNavigation(
-    floatingWindowNavController: NavHostController
+    floatingWindowNavController: NavHostController,
+    appViewModel: AppViewModel,
+    ztViewModel: ZeroTierViewModel
 ) {
     val viewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) {
         "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"
@@ -174,37 +192,31 @@ fun FWdNavigation(
         navController = floatingWindowNavController,
         startDestination = Route.messageFW.value,
         popEnterTransition = {
-            expandHorizontally(
-                animationSpec = tween(durationMillis = 200, easing = LinearEasing),
-                clip = false
-            )
+            slideInHorizontally(tween(durationMillis = 300, easing = FastOutLinearInEasing))
         },
         popExitTransition = {
-            shrinkHorizontally(
-                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
-                clip = false
-            )
+            slideOutHorizontally(tween(durationMillis = 300, easing = FastOutLinearInEasing))
         }
     ) {
         composable(Route.messageFW.value) {
             CompositionLocalProvider(
                 LocalViewModelStoreOwner provides viewModelStoreOwner
             ) {
-                FloatingWindowMessageContent()
+                FloatingWindowMessageContent(appViewModel = appViewModel, ztViewModel = ztViewModel)
             }
         }
         composable(Route.memberFW.value) {
             CompositionLocalProvider(
                 LocalViewModelStoreOwner provides viewModelStoreOwner
             ) {
-                FloatingWindowMemberContent()
+                FloatingWindowMemberContent(appViewModel = appViewModel, ztViewModel = ztViewModel)
             }
         }
         composable(Route.settingFW.value) {
             CompositionLocalProvider(
                 LocalViewModelStoreOwner provides viewModelStoreOwner
             ) {
-                FloatingWindowSettingContent()
+                FloatingWindowSettingContent(appViewModel = appViewModel, ztViewModel = ztViewModel)
             }
         }
     }

@@ -5,7 +5,7 @@ import kill.online.helper.zeroTier.util.IPPacketUtils
 import java.net.InetAddress
 import java.nio.ByteBuffer
 
-// TODO: clear up
+// TODO: 一般不启用此表
 class NDPTable {
     private val entriesMap = HashMap<Long, NDPEntry>()
     private val inetAddressToMacAddress = HashMap<InetAddress, Long>()

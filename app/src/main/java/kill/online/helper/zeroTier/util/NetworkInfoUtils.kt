@@ -15,6 +15,7 @@ import java.io.IOException
  */
 object NetworkInfoUtils {
     const val TAG = "NetworkInfoUtils"
+    // wifi 还是 mobile
     fun getNetworkInfoCurrentConnection(context: Context): CurrentConnection {
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

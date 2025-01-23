@@ -7,6 +7,7 @@ import com.zerotier.sdk.ResultCode
 import com.zerotier.sdk.VirtualNetworkConfig
 import com.zerotier.sdk.VirtualNetworkFrameListener
 import com.zerotier.sdk.util.StringUtils
+import kill.online.helper.utils.toHexString
 import kill.online.helper.zeroTier.util.IPPacketUtils
 import kill.online.helper.zeroTier.util.InetAddressUtils
 import java.io.FileInputStream
@@ -28,8 +29,8 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     private val routeMap = HashMap<Route, Long>()
     private var arpTable: ARPTable? = ARPTable()
     private var ndpTable: NDPTable? = NDPTable()
-    private var `in`: FileInputStream? = null
-    private var out: FileOutputStream? = null
+    private var vpnInput: FileInputStream? = null
+    private var vpnOutput: FileOutputStream? = null
     val isRunning: Boolean
         get() {
             val thread = receiveThread ?: return false
@@ -38,7 +39,9 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     private var receiveThread: Thread? = null
     private var vpnSocket: ParcelFileDescriptor? = null
     private var onHandleIPPacket: (packetData: ByteArray) -> ByteArray = { it }
+
     private fun addMulticastRoutes() {}
+
     fun setNode(node: Node?) {
         this.node = node
         try {
@@ -61,8 +64,16 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     }
 
     fun setFileStreams(fileInputStream: FileInputStream?, fileOutputStream: FileOutputStream?) {
-        `in` = fileInputStream
-        out = fileOutputStream
+        vpnInput = fileInputStream
+        vpnOutput = fileOutputStream
+    }
+
+    fun writePacketToTun(packetData: ByteArray) {
+        try {
+            vpnOutput!!.write(packetData)
+        } catch (e: IOException) {
+            Log.e(TAG, "Error writing data to vpn socket: \n" + e.message, e)
+        }
     }
 
     fun addRouteAndNetwork(route: Route, networkId: Long) {
@@ -102,7 +113,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                     while (!isInterrupted) {
                         try {
                             var noDataBeenRead = true
-                            val readCount = `in`!!.read(buffer.array())
+                            val readCount = vpnInput!!.read(buffer.array())
                             if (readCount > 0) {
                                 Log.d(TAG, "Sending packet to ZeroTier. $readCount bytes.")
                                 val readData = ByteArray(readCount)
@@ -138,38 +149,26 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
         receiveThread?.run { start() }
     }
 
+    //虚拟网络中的包，这里是发出的数据包
     private fun handleIPv4Packet(packetData: ByteArray) {
-        Log.i(TAG, "handleIPv4Packet: packetData: $packetData")
+        Log.d(TAG, "handleIPv4Packet: packetData: ${packetData.toHexString()}")
         val virtualNetworkConfig: VirtualNetworkConfig? = ztService.node.networkConfig(networkId)
-        val originalSourceIP: InetAddress? = IPPacketUtils.getSourceIP(packetData)
-        val originalDestIP: InetAddress? = IPPacketUtils.getDestIP(packetData)
-
+        var destIP: InetAddress = IPPacketUtils.getDestIP(packetData) ?: return
+        val sourceIP: InetAddress = IPPacketUtils.getSourceIP(packetData) ?: return
+        Log.d(TAG, "handleIPv4Packet: originalSourceIP: $sourceIP")
+        Log.d(TAG, "handleIPv4Packet: originalDestIP: $destIP")
+        var handledPacketData: ByteArray =
+            try {
+                onHandleIPPacket(packetData)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Error in onHandleIPPacket: ", e)
+                packetData
+            }
+        if (handledPacketData.isEmpty()) return // 如果处理后的数据为空，不发送
         if (virtualNetworkConfig == null) {
             Log.e(TAG, "TunTapAdapter has no network config yet")
             return
-        } else if (originalDestIP == null) {
-            Log.e(TAG, "destAddress is null")
-            return
-        } else if (originalSourceIP == null) {
-            Log.e(TAG, "sourceAddress is null")
-            return
         }
-        val assignedIp = virtualNetworkConfig.assignedAddresses?.first()
-        val networkPrefix =
-            InetAddressUtils.addressToNetworkPrefix(assignedIp?.address, assignedIp?.port)
-
-        var handledPacketData: ByteArray =
-            if (IPPacketUtils.isInNetwork(originalSourceIP, networkPrefix) ||
-                IPPacketUtils.isInNetwork(originalDestIP, networkPrefix)
-            ) {
-                onHandleIPPacket(packetData)
-            } else {
-                packetData
-            }
-
-        var destIP: InetAddress = IPPacketUtils.getDestIP(handledPacketData) ?: return
-        val sourceIP: InetAddress = IPPacketUtils.getSourceIP(handledPacketData) ?: return
-
         val isMulticast: Boolean = if (isIPv4Multicast(destIP)) {
             val result: ResultCode =
                 node!!.multicastSubscribe(networkId, multicastAddressToMAC(destIP))
@@ -213,6 +212,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
             } else {
                 arpTable!!.getMacForAddress(destIP)
             }
+
             val result: ResultCode = node!!.processVirtualNetworkFrame(
                 System.currentTimeMillis(),
                 networkId,
@@ -255,10 +255,13 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     }
 
     private fun handleIPv6Packet(packetData: ByteArray) {
-
+        Log.d(TAG, "handleIPv6Packet: packetData: ${packetData.toHexString()}")
         var handledPacketData: ByteArray = packetData
         var destIP: InetAddress? = IPPacketUtils.getDestIP(handledPacketData)
         val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(handledPacketData)
+        Log.d(TAG, "handleIPv6Packet: originalSourceIP: $sourceIP")
+        Log.d(TAG, "handleIPv6Packet: originalDestIP: $destIP")
+
         val virtualNetworkConfig: VirtualNetworkConfig? = ztService.node.networkConfig(networkId)
         if (virtualNetworkConfig == null) {
             Log.e(TAG, "TunTapAdapter has no network config yet")
@@ -282,11 +285,11 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
 
         // 查找当前节点的 v6 地址
         val ztAddresses: Array<InetSocketAddress> = virtualNetworkConfig.assignedAddresses
-        var localV4Address: InetAddress? = null
+        var localV6Address: InetAddress? = null
         var cidr = 0
         for (address in ztAddresses) {
             if (address.address is Inet6Address) {
-                localV4Address = address.address
+                localV6Address = address.address
                 cidr = address.port
                 break
             }
@@ -296,7 +299,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
         if (gateway != null && destRoute != sourceRoute) {
             destIP = gateway
         }
-        if (localV4Address == null) {
+        if (localV6Address == null) {
             Log.e(TAG, "handleIPv6Packet: Couldn't determine local address")
             return
         }
@@ -387,8 +390,8 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     fun interrupt() {
         if (receiveThread != null) {
             try {
-                `in`!!.close()
-                out!!.close()
+                vpnInput!!.close()
+                vpnOutput!!.close()
             } catch (e: IOException) {
                 Log.e(TAG, "Error stopping in/out: " + e.message, e)
             }
@@ -417,9 +420,14 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
     /**
      * 响应并处理 ZT 网络发送至本节点的以太网帧
      */
+    //这里是收到的数据包
     override fun onVirtualNetworkFrame(
-        networkId: Long, srcMac: Long, destMac: Long, etherType: Long,
-        vlanId: Long, frameData: ByteArray
+        networkId: Long,
+        srcMac: Long,
+        destMac: Long,
+        etherType: Long,
+        vlanId: Long,
+        frameData: ByteArray
     ) {
         Log.d(
             TAG, "Got Virtual Network Frame. " +
@@ -427,11 +435,12 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                     " Source MAC: " + StringUtils.macAddressToString(srcMac) +
                     " Dest MAC: " + StringUtils.macAddressToString(destMac) +
                     " Ether type: " + StringUtils.etherTypeToString(etherType) +
-                    " VLAN ID: " + vlanId + " Frame Length: " + frameData.size
+                    " VLAN ID: " + vlanId +
+                    " Frame Length: " + frameData.size
         )
         if (vpnSocket == null) {
             Log.e(TAG, "vpnSocket is null!")
-        } else if (`in` == null || out == null) {
+        } else if (vpnInput == null || vpnOutput == null) {
             Log.e(TAG, "no in/out streams")
         } else if (etherType == ARP_PACKET.toLong()) {
             // 收到 ARP 包。更新 ARP 表，若需要则进行应答
@@ -475,7 +484,29 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
             // 收到 IPv4 包。根据需要发送至 TUN
             Log.d(TAG, "Got IPv4 packet. Length: " + frameData.size + " Bytes")
             try {
-                val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(frameData)
+                val originalSourceIP: InetAddress? = IPPacketUtils.getSourceIP(frameData)
+                val originalDestIP: InetAddress? = IPPacketUtils.getDestIP(frameData)
+
+                val virtualNetworkConfig: VirtualNetworkConfig =
+                    ztService.node.networkConfig(networkId)
+                val assignedIP =
+                    virtualNetworkConfig.assignedAddresses?.first { it.address is Inet4Address }
+                val networkPrefix =
+                    InetAddressUtils.addressToNetworkPrefix(assignedIP?.address, assignedIP?.port)
+                Log.d(TAG, "onVirtualNetworkFrame: originalSourceIP: $originalSourceIP")
+                Log.d(TAG, "onVirtualNetworkFrame: originalDestIP: $originalDestIP")
+                Log.d(TAG, "onVirtualNetworkFrame: frame: ${frameData.toHexString()} ")
+                Log.d(TAG, "onVirtualNetworkFrame: assignedIP: $assignedIP")
+                Log.d(TAG, "onVirtualNetworkFrame: networkPrefix: $networkPrefix")
+                val handledFrameData: ByteArray =
+                    try {
+                        onHandleIPPacket(frameData)
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Error in onHandleIPPacket: ", e)
+                        frameData
+                    }
+                if (handledFrameData.isEmpty()) return // 如果处理后的数据为空，不接受
+                val sourceIP: InetAddress? = IPPacketUtils.getSourceIP(handledFrameData)
                 if (sourceIP != null) {
                     if (isIPv4Multicast(sourceIP)) {
                         val result: ResultCode = node!!.multicastSubscribe(
@@ -489,7 +520,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                         arpTable!!.setAddress(sourceIP, srcMac)
                     }
                 }
-                out!!.write(frameData)
+                vpnOutput!!.write(handledFrameData)
             } catch (e: Exception) {
                 Log.e(TAG, "Error writing data to vpn socket: " + e.message, e)
             }
@@ -511,7 +542,7 @@ class TunTapAdapter(private val ztService: ZeroTierOneService, private val netwo
                         ndpTable!!.setAddress(sourceIP, srcMac)
                     }
                 }
-                out!!.write(frameData)
+                vpnOutput!!.write(frameData)
             } catch (e: Exception) {
                 Log.e(TAG, "Error writing data to vpn socket: " + e.message, e)
             }

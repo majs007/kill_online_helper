@@ -11,6 +11,7 @@ import kotlin.math.abs
 
 object InetAddressUtils {
     const val TAG = "InetAddressUtils"
+    const val GLOBAL_BROADCAST_ADDRESS = "255.255.255.255"
     const val BROADCAST_MAC_ADDRESS = 0xffffffffffffL
 
     /**

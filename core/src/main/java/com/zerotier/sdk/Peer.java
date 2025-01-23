@@ -27,9 +27,9 @@
 
 package com.zerotier.sdk;
 
-import java.util.Arrays;
-
 import com.zerotier.sdk.util.StringUtils;
+
+import java.util.Arrays;
 
 /**
  * Peer status result buffer
@@ -46,7 +46,7 @@ public class Peer {
 
     private final int versionRev;
 
-    private final int latency;
+    private int latency;
 
     private final PeerRole role;
 
@@ -101,6 +101,7 @@ public class Peer {
     public int getLatency() {
         return latency;
     }
+
 
     /**
      * What trust hierarchy role does this device have?

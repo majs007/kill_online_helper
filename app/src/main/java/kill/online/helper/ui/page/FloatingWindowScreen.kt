@@ -1,16 +1,11 @@
 package kill.online.helper.ui.page
 
-import android.graphics.Rect
 import android.os.Build
-import android.util.Base64
 import android.util.Log
-import androidx.activity.OnBackPressedDispatcherOwner
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,16 +27,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.rememberNavController
@@ -49,7 +42,6 @@ import kill.online.helper.route.FWdNavigation
 import kill.online.helper.route.Route
 import kill.online.helper.route.floatingWindowNavItem
 import kill.online.helper.route.floatingWindowTopBarTitle
-import kill.online.helper.ui.theme.emojiSize
 import kill.online.helper.ui.theme.floatingWindowBackgroundAlpha
 import kill.online.helper.ui.theme.floatingWindowBarAlpha
 import kill.online.helper.ui.theme.floatingWindowCorner
@@ -58,10 +50,10 @@ import kill.online.helper.ui.theme.floatingWindowWidth
 import kill.online.helper.ui.theme.topAppBarActionPadding
 import kill.online.helper.ui.window.ComposeFloatingWindow
 import kill.online.helper.ui.window.FloatingWindowFactory
+import kill.online.helper.utils.dpToPx
 import kill.online.helper.utils.dragFloatingWindow
-import kill.online.helper.utils.toPainter
 import kill.online.helper.viewModel.AppViewModel
-import kotlinx.coroutines.delay
+import kill.online.helper.viewModel.ZeroTierViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,9 +61,10 @@ import kotlinx.coroutines.delay
 @Composable
 fun FloatingWindowScreen(
     fw: ComposeFloatingWindow,
-    onBackPressedDispatcherOwner: OnBackPressedDispatcherOwner?,
     appViewModel: AppViewModel = viewModel(),
+    ztViewModel: ZeroTierViewModel = viewModel()
 ) {
+    val TAG = "FWScreen"
     val floatingWindowNavController = rememberNavController()
     var selectedItem by remember { mutableStateOf(Route.messageFW.value) }
     val context = LocalContext.current
@@ -79,7 +72,8 @@ fun FloatingWindowScreen(
     Surface(
         color = Color.Black.copy(alpha = floatingWindowBackgroundAlpha),
         shape = RoundedCornerShape(floatingWindowCorner),
-        contentColor = Color.White
+        contentColor = Color.White,
+        modifier = Modifier
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -132,18 +126,24 @@ fun FloatingWindowScreen(
                             )
                         }
                     },
-                    modifier = Modifier.dragFloatingWindow { windowOffset ->
-                        appViewModel.toScreenOffset = windowOffset
-                    }
+                    modifier = Modifier
+                        .height(30.dp)
+                        .dragFloatingWindow { windowOffset, dragArea ->
+                            appViewModel.screenWidth = dragArea.x
+                            appViewModel.screenHeight = dragArea.y
+                        }
                 )
             },
             bottomBar = {
                 BottomAppBar(
                     contentColor = Color.White,
                     containerColor = Color.Black.copy(floatingWindowBarAlpha),
-                    modifier = Modifier.dragFloatingWindow { windowOffset ->
-                        appViewModel.toScreenOffset = windowOffset
-                    }
+                    modifier = Modifier
+                        .height(45.dp)
+                        .dragFloatingWindow { windowOffset, dragArea ->
+                            appViewModel.screenWidth = dragArea.x
+                            appViewModel.screenHeight = dragArea.y
+                        }
                 ) {
                     floatingWindowNavItem.forEachIndexed { index, item ->
                         NavigationBarItem(
@@ -187,69 +187,31 @@ fun FloatingWindowScreen(
         ) {
             val topAppBarPadding = it.calculateTopPadding()
             val bottomAppBarPadding = it.calculateBottomPadding()
-            val floatingImg =
-                FloatingWindowFactory.getFloatingWindow(
-                    "floatingImg",
-                    content = { fb ->
-                        LaunchedEffect(appViewModel.receivedImg.timeStamp) {
-                            delay(2000)
-                            fb.hide()
-                        }
-                        val img = Base64.decode(
-                            appViewModel.receivedImg.msg,
-                            Base64.DEFAULT
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(emojiSize)
-                                .clipToBounds()
-                        ) {
-                            Image(img.toPainter(), contentDescription = null)
-                        }
-                    },
-                    config = { fb ->
-                        fb.setCallback(
-                            onShow = {
-//                                showToast(context, "显示悬浮窗")
-                                Log.i("onShow", "floatingImg")
-                            },
-                            onHide = {
-//                                showToast(context, "隐藏悬浮窗")
-                                Log.i("onHide", "floatingImg")
+            Log.d(
+                TAG,
+                "topAppBarPadding: ${
+                    dpToPx(
+                        context,
+                        topAppBarPadding.value
+                    )
+                } bottomAppBarPadding: ${
+                    dpToPx(
+                        context,
+                        bottomAppBarPadding.value
+                    )
+                }"
+            )
 
-                            }
-                        )
-                            .setLayoutParams { params ->
-                                val decorView = fb.decorView
-                                val f = Rect().also { rect ->
-                                    decorView.getWindowVisibleDisplayFrame(rect)
-                                }
-                                if (appViewModel.receivedImg.isDrag) {
-                                    params.x =
-                                        (f.width() * appViewModel.receivedImg.imagePositionRadio.x).toInt()
-                                    params.y =
-                                        (f.height() * appViewModel.receivedImg.imagePositionRadio.y).toInt()
-                                } else {
-                                    params.x = (f.width() - fb.contentWidth) / 2
-                                    params.y = (f.height() - fb.contentHeight) / 2
-                                }
 
-                            }
-                    })
-            LaunchedEffect(key1 = appViewModel.receivedImg.timeStamp) { floatingImg.show() }
             Column(
                 modifier = Modifier
                     .padding(top = topAppBarPadding, bottom = bottomAppBarPadding)
                     .fillMaxSize()
 //                .background(Color.Cyan)
             ) {
-                onBackPressedDispatcherOwner?.let { owner ->
-                    CompositionLocalProvider(LocalOnBackPressedDispatcherOwner provides owner) {
-                        FWdNavigation(floatingWindowNavController)
-                    }
-                }
+                FWdNavigation(floatingWindowNavController, appViewModel, ztViewModel)
             }
         }
     }
-
 }
+

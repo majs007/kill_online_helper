@@ -34,8 +34,6 @@ import kill.online.helper.ui.theme.doubleSpacePadding
 import kill.online.helper.ui.theme.imePadding
 import kill.online.helper.ui.theme.textPadding
 import kill.online.helper.utils.FileUtils
-import kill.online.helper.utils.StateUtils.add
-import kill.online.helper.utils.StateUtils.update
 import kill.online.helper.viewModel.AppViewModel
 import kill.online.helper.viewModel.ZeroTierViewModel
 
@@ -55,8 +53,8 @@ fun RuleConfigSheet(
     var checkedIndex by remember { mutableIntStateOf(0) }
     var rule by remember { mutableStateOf("") }
     if (isShow) {
-        checkedIndex = gameMode.indexOf(ztViewModel.roomRule.value[clickedIndex].mode)
-        rule = ztViewModel.roomRule.value[clickedIndex].rule
+        checkedIndex = gameMode.indexOf(ztViewModel.roomRules[clickedIndex].mode)
+        rule = ztViewModel.roomRules[clickedIndex].rule
     } else {
         checkedIndex = 0
         rule = ""
@@ -72,7 +70,6 @@ fun RuleConfigSheet(
                     .padding(start = appPadding, end = appPadding)
 //                    .background(Color.Cyan)
             ) {
-
                 Text(text = "游戏模式：${gameMode[checkedIndex]}")
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -106,22 +103,9 @@ fun RuleConfigSheet(
                 )
                 ElevatedButton(
                     onClick = {
-//                        if (!isShow) appViewModel.addRoomRule(gameMode[checkedIndex], rule, context)
-                        if (!isShow) add(
-                            FileUtils.ItemName.RoomRule,
-                            ztViewModel.roomRule,
-                            RoomRule(gameMode[checkedIndex], rule)
-                        )
-                        else
-                        /*       appViewModel.updateRoomRule(clickedIndex, context) {
-                               it.copy(mode = gameMode[checkedIndex], rule = rule)
-                           }*/
-                            update(
-                                FileUtils.ItemName.RoomRule,
-                                ztViewModel.roomRule, clickedIndex
-                            ) {
-                                it.copy(mode = gameMode[checkedIndex], rule = rule)
-                            }
+                        if (!isShow) ztViewModel.roomRules.add(RoomRule(gameMode[checkedIndex], rule))
+                        else ztViewModel.roomRules[clickedIndex] =  ztViewModel.roomRules[clickedIndex].copy(mode = gameMode[checkedIndex], rule = rule)
+                        ztViewModel.saveZTConfig(FileUtils.ItemName.RoomRules)
                         onDismissRequest()
                     },
                     modifier = Modifier

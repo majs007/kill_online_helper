@@ -28,10 +28,10 @@ enum class OpenSourceReference(val label: String, val url: String) {
     LottieAndroid("lottie-android", "https://github.com/airbnb/lottie-android/"),
     Retrofit("Retrofit", "https://github.com/square/retrofit"),
     OkHttp("OkHttp", "https://github.com/square/okhttp"),
-    UltraSwipeRefresh("UltraSwipeRefreshLayout", "https://github.com/jenly1314/UltraSwipeRefresh"),
+
+    //    UltraSwipeRefresh("UltraSwipeRefreshLayout", "https://github.com/jenly1314/UltraSwipeRefresh"),
     ComposeRichText("compose-richtext", "https://github.com/halilozercan/compose-richtext"),
     Nanohttpd("nanoHttpd", "https://github.com/NanoHttpd/nanohttpd")
-
 }
 
 @Composable

@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.io.File
+import java.io.FileOutputStream
 
 object FileUtils {
     const val TAG = "FileUtils"
@@ -11,15 +13,10 @@ object FileUtils {
 
     enum class DataType { Json, String, Int, Boolean }
     sealed class ItemName(val name: String) {
-        data object Network : ItemName("network")
-        data object NetworkConfig : ItemName("networkConfig")
+        data object ZTNetworks : ItemName("ztNetworks")
+        data object ZTMoons : ItemName("ztMoons")
         data object AppSetting : ItemName("appSetting")
-        data object RoomRule : ItemName("roomRule")
-        data object Room : ItemName("room")
-        data object Blacklist : ItemName("blacklist")
-        data object Message : ItemName("message")
-        data object Moon : ItemName("moon")
-        data object AllItems : ItemName("allItems")
+        data object RoomRules : ItemName("roomRules")
     }
 
     fun isExist(
@@ -33,7 +30,7 @@ object FileUtils {
 
     inline fun <reified T> read(
         itemName: ItemName,
-        defValue: T,
+        defaultValue: T,
         dataType: DataType = DataType.Json,
         context: Context = applicationContext,
         fileName: String = "zeroTier",
@@ -41,8 +38,9 @@ object FileUtils {
     ): T {
         val gson = Gson()
         val sharedPreferences = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
-        val strContent = sharedPreferences.getString(itemName.name, null) ?: return defValue
-        Log.i(TAG, "read: strContent = $strContent")
+        val strContent = sharedPreferences.getString(itemName.name, null) ?: return defaultValue
+
+        Log.i(TAG, "read:$itemName strContent = $strContent")
         return when (dataType) {
             DataType.Json -> {
                 val type = object : TypeToken<T>() {}.type
@@ -89,10 +87,55 @@ object FileUtils {
                 content.toString()
             }
         }
-        Log.i(TAG, "write: strContent = $strContent")
+        Log.i(TAG, "write:$itemName strContent = $strContent")
         editor.putString(itemName.name, strContent)
         editor.apply()
         callback(strContent)
     }
+
+    fun writeBytesToFile(file: File, data: ByteArray) {
+        try {
+            if (file.parentFile?.exists() == false) {
+                // 创建父目录
+                file.parentFile?.mkdirs()
+            }
+            FileOutputStream(file).use { fos ->
+                fos.write(data)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "writeBytesToFile:\n${e.message}")
+        }
+
+    }
+
+
+    fun writeBytesToFile(context: Context, dirName: String, fileName: String, data: ByteArray) {
+        try {
+            val dir = context.getExternalFilesDir(dirName)
+            val file = File(dir, fileName)
+            if (file.parentFile?.exists() == false) {
+                // 创建父目录
+                file.parentFile?.mkdirs()
+            }
+            FileOutputStream(file).use { fos ->
+                fos.write(data)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "writeBytesToFile:\n${e.message}")
+        }
+    }
+
+    fun deleteFile(context: Context, dirName: String, fileName: String) {
+        try {
+            val dir = context.getExternalFilesDir(dirName)
+            val file = File(dir, fileName)
+            if (file.exists()) {
+                file.delete()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteFile:\n${e.message}")
+        }
+    }
+
 
 }

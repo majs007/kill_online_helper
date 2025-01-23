@@ -6,41 +6,40 @@ import java.nio.ByteBuffer
 
 // TODO: clear up
 class ARPTable {
-    private val entriesMap = HashMap<Long, ARPEntry>()
-    private val inetAddressToMacAddress = HashMap<InetAddress, Long>()
-    private val ipEntriesMap = HashMap<InetAddress?, ARPEntry>()
-    private val macAddressToInetAdddress = HashMap<Long, InetAddress>()
+    // mac ------> ARP 表项
+    private val macToARPEntriesMap = HashMap<Long, ARPEntry>()
+    // ip ------> ARP 表项
+    private val ipToARPEntriesMap = HashMap<InetAddress?, ARPEntry>()
+
+    // ip ------> mac
+    private val ipToMacMap = HashMap<InetAddress, Long>()
+    // mac ------> ip
+    private val macToIpMap = HashMap<Long, InetAddress>()
+
+    // 超时线程，执行 ARP 表项超时清理
     private val timeoutThread: Thread = object : Thread("ARP Timeout Thread") {
-        /* class com.zerotier.one.service.ARPTable.AnonymousClass1 */
+        @Synchronized
         override fun run() {
             while (!isInterrupted) {
                 try {
-                    for (arpEntry in entriesMap.values) {
+                    for (arpEntry in macToARPEntriesMap.values) {
                         if (arpEntry.time + ENTRY_TIMEOUT < System.currentTimeMillis()) {
                             Log.d(
                                 TAG,
                                 "Removing " + arpEntry.address.toString() + " from ARP cache"
                             )
-                            synchronized(macAddressToInetAdddress) {
-                                macAddressToInetAdddress.remove(
-                                    arpEntry.mac
-                                )
-                            }
-                            synchronized(inetAddressToMacAddress) {
-                                inetAddressToMacAddress.remove(
-                                    arpEntry.address
-                                )
-                            }
-                            synchronized(entriesMap) { entriesMap.remove(arpEntry.mac) }
-                            synchronized(ipEntriesMap) { ipEntriesMap.remove(arpEntry.address) }
+                            synchronized(macToIpMap) { macToIpMap.remove(arpEntry.mac) }
+                            synchronized(ipToMacMap) { ipToMacMap.remove(arpEntry.address) }
+                            synchronized(macToARPEntriesMap) { macToARPEntriesMap.remove(arpEntry.mac) }
+                            synchronized(ipToARPEntriesMap) { ipToARPEntriesMap.remove(arpEntry.address) }
                         }
                     }
                     sleep(1000)
                     setAddress(InetAddress.getByName("255.255.255.255"), 0xffffffffffff)
                 } catch (e: InterruptedException) {
-                    Log.e(TAG, "Tun/Tap Interrupted", e)
+                    Log.e(TAG, "Tun/Tap Interrupted")
                     break
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     Log.d(TAG, e.toString())
                 }
             }
@@ -57,55 +56,56 @@ class ARPTable {
             timeoutThread.interrupt()
             timeoutThread.join()
         } catch (ignored: InterruptedException) {
+
         }
     }
 
-    /* access modifiers changed from: package-private */
-    fun setAddress(inetAddress: InetAddress, j: Long) {
-        synchronized(inetAddressToMacAddress) { inetAddressToMacAddress.put(inetAddress, j) }
-        synchronized(macAddressToInetAdddress) { macAddressToInetAdddress.put(j, inetAddress) }
-        val arpEntry = ARPEntry(j, inetAddress)
-        synchronized(entriesMap) { entriesMap.put(j, arpEntry) }
-        synchronized(ipEntriesMap) { ipEntriesMap.put(inetAddress, arpEntry) }
+
+    fun setAddress(inetAddress: InetAddress, mac: Long) {
+        val arpEntry = ARPEntry(mac, inetAddress)
+        synchronized(ipToMacMap) { ipToMacMap.put(inetAddress, mac) }
+        synchronized(macToIpMap) { macToIpMap.put(mac, inetAddress) }
+        synchronized(macToARPEntriesMap) { macToARPEntriesMap.put(mac, arpEntry) }
+        synchronized(ipToARPEntriesMap) { ipToARPEntriesMap.put(inetAddress, arpEntry) }
     }
 
-    private fun updateArpEntryTime(j: Long) {
-        synchronized(entriesMap) {
-            val arpEntry = entriesMap[j]
+    private fun updateArpEntryTime(mac: Long) {
+        synchronized(macToARPEntriesMap) {
+            val arpEntry = macToARPEntriesMap[mac]
             arpEntry?.updateTime()
         }
     }
 
     private fun updateArpEntryTime(inetAddress: InetAddress?) {
-        synchronized(ipEntriesMap) {
-            val arpEntry = ipEntriesMap[inetAddress]
+        synchronized(ipToARPEntriesMap) {
+            val arpEntry = ipToARPEntriesMap[inetAddress]
             arpEntry?.updateTime()
         }
     }
 
-    /* access modifiers changed from: package-private */
+
     fun getMacForAddress(inetAddress: InetAddress): Long {
-        synchronized(inetAddressToMacAddress) {
-            if (!inetAddressToMacAddress.containsKey(inetAddress)) {
+        synchronized(ipToMacMap) {
+            if (!ipToMacMap.containsKey(inetAddress)) {
                 return -1
             }
             Log.d(TAG, "Returning MAC for $inetAddress")
-            val longValue = inetAddressToMacAddress[inetAddress]
-            if (longValue != null) {
-                updateArpEntryTime(longValue)
-                return longValue
+            val mac = ipToMacMap[inetAddress]
+            if (mac != null) {
+                updateArpEntryTime(mac)
+                return mac
             }
         }
         return -1
     }
 
-    /* access modifiers changed from: package-private */
-    fun getAddressForMac(j: Long): InetAddress? {
-        synchronized(macAddressToInetAdddress) {
-            if (!macAddressToInetAdddress.containsKey(j)) {
+
+    fun getAddressForMac(mac: Long): InetAddress? {
+        synchronized(macToIpMap) {
+            if (!macToIpMap.containsKey(mac)) {
                 return null
             }
-            val inetAddress = macAddressToInetAdddress[j]
+            val inetAddress = macToIpMap[mac]
             updateArpEntryTime(inetAddress)
             return inetAddress
         }
@@ -113,38 +113,38 @@ class ARPTable {
 
     fun hasMacForAddress(inetAddress: InetAddress): Boolean {
         var containsKey: Boolean
-        synchronized(inetAddressToMacAddress) {
-            containsKey = inetAddressToMacAddress.containsKey(inetAddress)
+        synchronized(ipToMacMap) {
+            containsKey = ipToMacMap.containsKey(inetAddress)
         }
         return containsKey
     }
 
-    fun hasAddressForMac(j: Long): Boolean {
+    fun hasAddressForMac(mac: Long): Boolean {
         var containsKey: Boolean
-        synchronized(macAddressToInetAdddress) {
-            containsKey = macAddressToInetAdddress.containsKey(j)
+        synchronized(macToIpMap) {
+            containsKey = macToIpMap.containsKey(mac)
         }
         return containsKey
     }
 
-    fun getRequestPacket(j: Long, inetAddress: InetAddress, inetAddress2: InetAddress): ByteArray {
-        return getARPPacket(1, j, 0, inetAddress, inetAddress2)
+    fun getRequestPacket(mac: Long, inetAddress: InetAddress, inetAddress2: InetAddress): ByteArray {
+        return getARPPacket(1, mac, 0, inetAddress, inetAddress2)
     }
 
     fun getReplyPacket(
-        j: Long,
-        inetAddress: InetAddress,
-        j2: Long,
+        mac1: Long,
+        inetAddress1: InetAddress,
+        mac2: Long,
         inetAddress2: InetAddress
     ): ByteArray {
-        return getARPPacket(2, j, j2, inetAddress, inetAddress2)
+        return getARPPacket(2, mac1, mac2, inetAddress1, inetAddress2)
     }
 
     fun getARPPacket(
         i: Int,
-        j: Long,
-        j2: Long,
-        inetAddress: InetAddress,
+        mac1: Long,
+        mac2: Long,
+        inetAddress1: InetAddress,
         inetAddress2: InetAddress
     ): ByteArray {
         val bArr = ByteArray(28)
@@ -156,9 +156,9 @@ class ARPTable {
         bArr[5] = 4
         bArr[6] = 0
         bArr[7] = i.toByte()
-        System.arraycopy(longToBytes(j), 2, bArr, 8, 6)
-        System.arraycopy(inetAddress.address, 0, bArr, 14, 4)
-        System.arraycopy(longToBytes(j2), 2, bArr, 18, 6)
+        System.arraycopy(longToBytes(mac1), 2, bArr, 8, 6)
+        System.arraycopy(inetAddress1.address, 0, bArr, 14, 4)
+        System.arraycopy(longToBytes(mac2), 2, bArr, 18, 6)
         System.arraycopy(inetAddress2.address, 0, bArr, 24, 4)
         return bArr
     }
